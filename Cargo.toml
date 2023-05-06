@@ -7,5 +7,7 @@ edition = "2021"
 
 [dependencies]
 ariadne = "0.2.0"
+clap = { version = "4.2.7", features = ["derive"] }
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm15-0"] }
+label-logger = "0.2.0"
 logos = "0.13.0"

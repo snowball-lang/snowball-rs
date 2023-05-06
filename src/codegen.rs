@@ -4,7 +4,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
-    targets::{CodeModel, RelocMode, Target, TargetMachine, FileType},
+    targets::{CodeModel, FileType, RelocMode, Target, TargetMachine},
     OptimizationLevel,
 };
 
