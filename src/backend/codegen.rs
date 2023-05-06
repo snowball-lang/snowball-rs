@@ -50,4 +50,8 @@ impl<'ctx> Codegen<'ctx> {
             .write_to_file(&self.module, FileType::Object, path)
             .unwrap();
     }
+    pub fn compile_ast(&mut self) {
+
+    }
+    fn compile_expr
 }

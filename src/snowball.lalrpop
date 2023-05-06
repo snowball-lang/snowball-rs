@@ -25,6 +25,33 @@ grammar;
 //                │       │Expressions │               │
 //                └──────►└────────────┘◄──────────────┘
 
-pub SnowballParser: () = {
-
+// wanna copy the grammar for my other lang and adapt it just some parts
+// https://github.com/emm312/iron/blob/master/src/iron.lalrpop
+FunctionDeclaration: Node = { // func args are pain
+    "fn" <identifier:Ident> "(" [u do this part mf] ")" 
 }
+
+GlobalFunction: Node = {
+    "static" <fn:FunctionDeclaration>
+    "extern" <fn:FunctionDeclaration> ";"
+}
+
+ImportStatement: Node = {
+    "use" <mod:Ident> "::" <path:Ident*>
+}
+
+pub SnowballParser: Vec<Node> = {
+    RootParser*
+}
+
+RootParser: Node = {
+    FunctionDeclaration,
+    GlobalFunction
+}
+
+Term: Box<Expr> = {
+    "(" Num ")"
+}
+
+Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+Ident: String = <s:r"\w+"> => s
