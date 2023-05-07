@@ -10,5 +10,5 @@ extern crate lalrpop_util;
 struct Args {}
 
 fn main() {
-    println!("{:?}", parser::parse(String::from("fn main() i8")));
+    println!("{:?}", parser::parse(String::from("fn main(arg: i8)")));
 }

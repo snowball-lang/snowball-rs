@@ -10,7 +10,7 @@ build = "build.rs"
 ariadne = "0.2.0"
 clap = { version = "4.2.7", features = ["derive"] }
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm15-0"] }
-lalrpop-util = { version = "0.20.0", features = ["lexer"] }
+lalrpop-util = { version = "0.19.8", features = ["lexer"] }
 
 [build-dependencies]
-lalrpop = "0.20.0"
+lalrpop = "0.19.8"

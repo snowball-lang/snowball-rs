@@ -29,7 +29,7 @@ grammar;
 // wanna copy the grammar for my other lang and adapt it just some parts
 // https://github.com/emm312/iron/blob/master/src/iron.lalrpop
 FunctionDeclaration: Node = { // func args are pain
-    "fn" <identifier: Ident> "(" <args: FuncArgs> ")" => Node::FunctionDeclaration { name: identifier, args, body: Vec::new() }
+    "fn" <identifier: Ident> <args: FuncArgs> => Node::FunctionDeclaration { name: identifier, args, body: Vec::new() }
 }
 
 Block: Block = {
