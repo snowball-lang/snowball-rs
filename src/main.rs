@@ -1,8 +1,10 @@
-mod backend;
 mod frontend;
+mod backend;
 use std::fs;
 
 use clap::Parser;
+use frontend::parser;
+
 
 #[derive(Parser)]
 struct Args {
@@ -14,5 +16,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let _code = fs::read_to_string(args.input).unwrap();
+    let code = fs::read_to_string(args.input).unwrap();
+    
 }
