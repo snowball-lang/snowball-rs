@@ -1,14 +1,18 @@
-mod frontend;
 mod backend;
-use clap::Parser;
-use frontend::parser;
+mod frontend;
+use std::fs;
 
-#[macro_use]
-extern crate lalrpop_util;
+use clap::Parser;
 
 #[derive(Parser)]
-struct Args {}
+struct Args {
+    #[clap(short, long)]
+    input: String,
+    #[clap(short, long)]
+    output: String,
+}
 
 fn main() {
-    println!("{:?}", parser::parse(String::from("fn main(arg: i8)")));
+    let args = Args::parse();
+    let _code = fs::read_to_string(args.input).unwrap();
 }

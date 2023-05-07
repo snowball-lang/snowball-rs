@@ -15,7 +15,7 @@ pub struct Codegen<'ctx> {
 }
 
 impl<'ctx> Codegen<'ctx> {
-    pub fn compile(ast: ()) {
+    pub fn compile(_ast: ()) {
         let context = Context::create();
         let builder = context.create_builder();
         let module = context.create_module("main");
@@ -50,7 +50,5 @@ impl<'ctx> Codegen<'ctx> {
             .write_to_file(&self.module, FileType::Object, path)
             .unwrap();
     }
-    pub fn compile_ast(&mut self) {
-
-    }
+    pub fn compile_ast(&mut self) {}
 }

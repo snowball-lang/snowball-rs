@@ -4,8 +4,8 @@ pub type Block = Vec<Stmts>; // we can also have expressions at block level btw
 pub enum Stmts {
     Conditional {
         expr: Expr,
-        TrueBlock: Block,
-        FalseBlock: Option<Block>,
+        true_block: Block,
+        false_block: Option<Block>,
     },
     Expr {
         expr: Expr,
@@ -27,7 +27,7 @@ pub enum Expr {
         generics: Vec<TypeReference>,
     },
     Index {
-        isStatic: bool,
+        is_static: bool,
         base: Box<Expr>,
         ident: Box<Expr>,
     },
@@ -55,9 +55,19 @@ pub struct TypeReference {
 
 #[derive(Debug, Clone)]
 pub enum Node {
-    ImportStatement{ lib: String },
-    FunctionDeclaration{ name: String, args: Vec<(String, String)>, body: Vec<Stmts> },
-    VariableDeclaration{ typ: TypeReference, name: String, val: Expr },
+    ImportStatement {
+        lib: String,
+    },
+    FunctionDeclaration {
+        name: String,
+        args: Vec<(String, String)>,
+        body: Vec<Stmts>,
+    },
+    VariableDeclaration {
+        typ: TypeReference,
+        name: String,
+        val: Expr,
+    },
     ClassDeclaration {
         name: String,
         funcs: Vec<Node>,
