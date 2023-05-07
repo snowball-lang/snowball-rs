@@ -1,4 +1,5 @@
 use crate::frontend::ast::*;
+use std::str::FromStr;
 
 grammar;
 
@@ -28,30 +29,38 @@ grammar;
 // wanna copy the grammar for my other lang and adapt it just some parts
 // https://github.com/emm312/iron/blob/master/src/iron.lalrpop
 FunctionDeclaration: Node = { // func args are pain
-    "fn" <identifier:Ident> "(" [u do this part mf] ")" 
+    "fn" <identifier: Ident> "(" <args: FuncArgs> ")" => Node::FunctionDeclaration { name: identifier, args, body: Vec::new() }
 }
 
-GlobalFunction: Node = {
-    "static" <fn:FunctionDeclaration>
-    "extern" <fn:FunctionDeclaration> ";"
+Block: Block = {
+
 }
+
+FuncArgs: Vec<(String, String)> = {
+    "(" <mut params: (<Ident> ":" <Ident> ",")*> <last: (<Ident> ":" <Ident>)?> ")" => {
+        params.extend(last.clone());
+        params
+    }, 
+}
+
+//GlobalFunction: Node = {
+//    "static" <static_func:FunctionDeclaration>
+//    "extern" <external_func:FunctionDeclaration> ";"
+//}
 
 ImportStatement: Node = {
-    "use" <mod:Ident> "::" <path:Ident*>
+    "use" <module:Ident> "::" <path:Ident*> => Node::ImportStatement { lib: module } // TODO: fix
 }
 
-pub SnowballParser: Vec<Node> = {
+pub Snowball: Vec<Node> = {
     RootParser*
 }
 
 RootParser: Node = {
+    ImportStatement,
     FunctionDeclaration,
-    GlobalFunction
-}
-
-Term: Box<Expr> = {
-    "(" Num ")"
+    //GlobalFunction
 }
 
 Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
-Ident: String = <s:r"\w+"> => s
+Ident: String = r"[a-zA-Z][a-zA-Z0-9_-]*" => <>.to_string();

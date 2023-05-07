@@ -1,6 +1,7 @@
 mod frontend;
 mod backend;
 use clap::Parser;
+use frontend::parser;
 
 #[macro_use]
 extern crate lalrpop_util;
@@ -9,5 +10,5 @@ extern crate lalrpop_util;
 struct Args {}
 
 fn main() {
-    
+    println!("{:?}", parser::parse(String::from("fn main() i8")));
 }
