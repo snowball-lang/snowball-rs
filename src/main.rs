@@ -1,21 +1,21 @@
-mod frontend;
 mod backend;
+mod frontend;
+
 use std::fs;
 
 use clap::Parser;
-use frontend::parser;
-
+use frontend::{lexer::tokenise, parser};
 
 #[derive(Parser)]
 struct Args {
-    #[clap(short, long)]
     input: String,
-    #[clap(short, long)]
+    #[clap(short, default_value = "out.o")]
     output: String,
 }
 
 fn main() {
     let args = Args::parse();
-    let code = fs::read_to_string(args.input).unwrap();
-    
+    let code = fs::read_to_string(args.input.clone()).unwrap();
+    let tokens = tokenise(code, args.input);
+    println!("{:?}", tokens);
 }

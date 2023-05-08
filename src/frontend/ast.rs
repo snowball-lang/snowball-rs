@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub type Block = Vec<Stmts>; // we can also have expressions at block level btw
 
 #[derive(Debug, Clone)]
