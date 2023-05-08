@@ -113,7 +113,7 @@ pub struct Token {
     pub value: String,
 }
 
-pub fn tokenise(code: String, filename: String) -> Vec<Token> {
+pub fn tokenise(code: String) -> Vec<Token> {
     let mut lexer = Lexer::new(code);
     lexer.tokenise()
 }
@@ -168,8 +168,7 @@ impl Lexer {
     }
 
     pub fn tokenise(&mut self) -> Vec<Token> {
-        println!("{}", self.get_char(None));
-        println!("{}", self.pos);
+        self.text.push('\n'); // to fix annoying error (bad solution i know but shh)
         while self.pos < self.text.len() {
             match self.get_char(None) {
                 '\0' => {
