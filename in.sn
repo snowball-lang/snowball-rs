@@ -1,1 +1,4 @@
-=
+use System::E;
+func main() {
+    System::println("hello world");
+}
