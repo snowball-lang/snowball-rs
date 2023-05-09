@@ -17,5 +17,5 @@ fn main() {
     let args = Args::parse();
     let code = fs::read_to_string(args.input.clone()).unwrap();
     let tokens = tokenise(code);
-    println!("{:?}", tokens);
+    println!("{:#?}", tokens);
 }
