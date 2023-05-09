@@ -257,7 +257,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "*=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -266,7 +266,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "*".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '/' {
             let start = buf.line_pos();
@@ -278,7 +278,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "/=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -287,7 +287,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "/".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '%' {
             let start = buf.line_pos();
@@ -299,7 +299,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "/=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -308,7 +308,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "/".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '+' {
             let start = buf.line_pos();
@@ -320,7 +320,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "+=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -329,7 +329,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "+".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '-' {
             let start = buf.line_pos();
@@ -341,7 +341,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "-=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -350,7 +350,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "-".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '>' {
             let start = buf.line_pos();
@@ -362,9 +362,10 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: ">=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
-                if buf.current("") == '>' { // >> derivatives
+                if buf.current("") == '>' {
+                    // >> derivatives
                     let start = buf.line_pos();
                     buf.advance();
                     if buf.current("") == '=' {
@@ -374,7 +375,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                             val: ">>=".to_string(),
                             start,
                             end: buf.line_pos(),
-                        });  
+                        });
                     } else {
                         buf.back();
                         ret.push(Token {
@@ -383,7 +384,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                             val: ">>".to_string(),
                             start,
                             end: buf.line_pos(),
-                        });        
+                        });
                     }
                 } else {
                     buf.back();
@@ -393,8 +394,8 @@ pub fn tokenise(src: String) -> Vec<Token> {
                         val: ">".to_string(),
                         start: buf.line_pos(),
                         end: buf.line_pos(),
-                    });        
-                }      
+                    });
+                }
             }
         } else if data == '<' {
             let start = buf.line_pos();
@@ -406,9 +407,10 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "<=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
-                if buf.current("") == '>' { // >> derivatives
+                if buf.current("") == '>' {
+                    // >> derivatives
                     let start = buf.line_pos();
                     buf.advance();
                     if buf.current("") == '=' {
@@ -418,7 +420,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                             val: "<<=".to_string(),
                             start,
                             end: buf.line_pos(),
-                        });  
+                        });
                     } else {
                         buf.back();
                         ret.push(Token {
@@ -427,7 +429,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                             val: "<<".to_string(),
                             start,
                             end: buf.line_pos(),
-                        });        
+                        });
                     }
                 } else {
                     buf.back();
@@ -437,8 +439,8 @@ pub fn tokenise(src: String) -> Vec<Token> {
                         val: "<".to_string(),
                         start: buf.line_pos(),
                         end: buf.line_pos(),
-                    });        
-                }      
+                    });
+                }
             }
         } else if data == '!' {
             let start = buf.line_pos();
@@ -450,7 +452,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "!=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -459,7 +461,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "!".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else if data == '=' {
             let start = buf.line_pos();
@@ -494,7 +496,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     });
                 }
             }
-        } else if data == '&' { 
+        } else if data == '&' {
             let start = buf.line_pos();
             buf.advance();
             match buf.current("") {
@@ -578,7 +580,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "^=".to_string(),
                     start,
                     end: buf.line_pos(),
-                });  
+                });
             } else {
                 buf.back();
                 ret.push(Token {
@@ -587,7 +589,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     val: "^".to_string(),
                     start: buf.line_pos(),
                     end: buf.line_pos(),
-                });        
+                });
             }
         } else {
             let start = buf.line_pos();
@@ -791,55 +793,45 @@ pub fn tokenise(src: String) -> Vec<Token> {
                 }),
                 _ => {
                     if is_num(&word) {
-                        ret.push(
-                            Token {
-                                line,
-                                tok: TokType::ValNum,
-                                val: word,
-                                start,
-                                end: buf.line_pos(),
-                            }
-                        );
+                        ret.push(Token {
+                            line,
+                            tok: TokType::ValNum,
+                            val: word,
+                            start,
+                            end: buf.line_pos(),
+                        });
                     } else if is_float(&word) {
-                        ret.push(
-                            Token {
-                                line,
-                                tok: TokType::ValFloat,
-                                val: word,
-                                start,
-                                end: buf.line_pos(),
-                            }
-                        );
+                        ret.push(Token {
+                            line,
+                            tok: TokType::ValFloat,
+                            val: word,
+                            start,
+                            end: buf.line_pos(),
+                        });
                     } else if is_string(&word) {
-                        ret.push(
-                            Token {
-                                line,
-                                tok: TokType::ValString,
-                                val: word,
-                                start,
-                                end: buf.line_pos(),
-                            }
-                        );
+                        ret.push(Token {
+                            line,
+                            tok: TokType::ValString,
+                            val: word,
+                            start,
+                            end: buf.line_pos(),
+                        });
                     } else if is_char(&word) {
-                        ret.push(
-                            Token {
-                                line,
-                                tok: TokType::ValChar,
-                                val: word,
-                                start,
-                                end: buf.line_pos(),
-                            }
-                        );
+                        ret.push(Token {
+                            line,
+                            tok: TokType::ValChar,
+                            val: word,
+                            start,
+                            end: buf.line_pos(),
+                        });
                     } else {
-                        ret.push(
-                            Token {
-                                line,
-                                tok: TokType::Ident,
-                                val: word,
-                                start,
-                                end: buf.line_pos(),
-                            }
-                        );
+                        ret.push(Token {
+                            line,
+                            tok: TokType::Ident,
+                            val: word,
+                            start,
+                            end: buf.line_pos(),
+                        });
                     }
                 }
             }
@@ -852,7 +844,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
 struct Buffer {
     data: String,
     index: usize,
-    line_pos: usize
+    line_pos: usize,
 }
 
 impl Buffer {
@@ -860,7 +852,7 @@ impl Buffer {
         Buffer {
             data: src.clone(),
             index: 0,
-            line_pos: 0
+            line_pos: 0,
         }
     }
 
@@ -869,7 +861,7 @@ impl Buffer {
     }
 
     pub fn advance(&mut self) {
-        if self.data.chars().nth(self.index) ==  Some('\n') {
+        if self.data.chars().nth(self.index) == Some('\n') {
             self.line_pos = 0;
         } else {
             self.line_pos += 1;
@@ -892,7 +884,7 @@ impl Buffer {
     pub fn get_word(&mut self) -> String {
         println!("here");
         let mut ret = String::new();
-        while self.in_bounds() && !self.current("").is_whitespace(){
+        while self.in_bounds() && !self.current("").is_whitespace() {
             ret += &(self.current("").to_string());
             self.advance();
         }
