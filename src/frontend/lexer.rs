@@ -1,5 +1,3 @@
-use std::{process::exit, str};
-
 #[derive(Debug, Clone, Copy)]
 pub enum TokType {
     Ident,
@@ -882,9 +880,12 @@ impl Buffer {
     }
 
     pub fn get_word(&mut self) -> String {
-        println!("here");
         let mut ret = String::new();
-        while self.in_bounds() && !self.current("").is_whitespace() {
+        let mut is_in_str = false;
+        while self.in_bounds() && (!self.current("").is_whitespace() | is_in_str) {
+            if self.current("") == '"' || self.current("") == '\'' {
+                is_in_str = !is_in_str;
+            }
             ret += &(self.current("").to_string());
             self.advance();
         }
