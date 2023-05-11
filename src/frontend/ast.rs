@@ -61,7 +61,7 @@ pub enum Node {
     },
     FunctionDeclaration {
         name: String,
-        args: Vec<(String, String)>,
+        args: Vec<(String, TypeReference)>,
         body: Vec<Stmts>,
     },
     VariableDeclaration {

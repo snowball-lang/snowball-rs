@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokType {
     Ident,
 
@@ -114,7 +114,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
     let mut buf = Buffer::new(&src);
     let mut line = 0;
     while buf.in_bounds() {
-        let data = buf.current("");
+        let data = buf.current();
         if data == ' ' {
             buf.advance();
             continue;
@@ -155,7 +155,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == ':' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.in_bounds() && buf.current("") == ':' {
+            if buf.in_bounds() && buf.current() == ':' {
                 ret.push(Token {
                     line,
                     tok: TokType::SymbolColcol,
@@ -248,7 +248,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '*' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpMulEq,
@@ -269,7 +269,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '/' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpDivEq,
@@ -290,7 +290,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '%' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpModEq,
@@ -311,7 +311,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '+' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpPlusEq,
@@ -332,7 +332,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '-' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpMinusEq,
@@ -353,7 +353,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '>' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpGtEq,
@@ -362,11 +362,11 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     end: buf.line_pos(),
                 });
             } else {
-                if buf.current("") == '>' {
+                if buf.current() == '>' {
                     // >> derivatives
                     let start = buf.line_pos();
                     buf.advance();
-                    if buf.current("") == '=' {
+                    if buf.current() == '=' {
                         ret.push(Token {
                             line,
                             tok: TokType::OpBitRshEq,
@@ -398,7 +398,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '<' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpLtEq,
@@ -407,11 +407,11 @@ pub fn tokenise(src: String) -> Vec<Token> {
                     end: buf.line_pos(),
                 });
             } else {
-                if buf.current("") == '>' {
+                if buf.current() == '>' {
                     // >> derivatives
                     let start = buf.line_pos();
                     buf.advance();
-                    if buf.current("") == '=' {
+                    if buf.current() == '=' {
                         ret.push(Token {
                             line,
                             tok: TokType::OpBitLshEq,
@@ -443,7 +443,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '!' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpNotEq,
@@ -464,7 +464,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '=' {
             let start = buf.line_pos();
             buf.advance();
-            match buf.current("") {
+            match buf.current() {
                 '=' => {
                     ret.push(Token {
                         line,
@@ -497,7 +497,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '&' {
             let start = buf.line_pos();
             buf.advance();
-            match buf.current("") {
+            match buf.current() {
                 '=' => {
                     ret.push(Token {
                         line,
@@ -530,7 +530,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '|' {
             let start = buf.line_pos();
             buf.advance();
-            match buf.current("") {
+            match buf.current() {
                 '=' => {
                     ret.push(Token {
                         line,
@@ -571,7 +571,7 @@ pub fn tokenise(src: String) -> Vec<Token> {
         } else if data == '^' {
             let start = buf.line_pos();
             buf.advance();
-            if buf.current("") == '=' {
+            if buf.current() == '=' {
                 ret.push(Token {
                     line,
                     tok: TokType::OpBitXorEq,
@@ -867,8 +867,8 @@ impl Buffer {
         self.index += 1
     }
 
-    pub fn current(&self, err: &str) -> char {
-        self.data.chars().nth(self.index).expect(err)
+    pub fn current(&self) -> char {
+        self.data.chars().nth(self.index).expect("")
     }
 
     pub fn line_pos(&self) -> usize {
@@ -882,11 +882,11 @@ impl Buffer {
     pub fn get_word(&mut self) -> String {
         let mut ret = String::new();
         let mut is_in_str = false;
-        while self.in_bounds() && (!self.current("").is_whitespace() | is_in_str) {
-            if self.current("") == '"' || self.current("") == '\'' {
+        while self.in_bounds() && (self.current().is_alphanumeric() || self.current() == '_' || is_in_str) {
+            if self.current() == '"' || self.current() == '\'' {
                 is_in_str = !is_in_str;
             }
-            ret += &(self.current("").to_string());
+            ret += &(self.current().to_string());
             self.advance();
         }
         ret

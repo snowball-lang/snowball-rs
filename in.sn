@@ -1,4 +1,3 @@
-use System::E;
-func main() {
+func main(a i32) {
     System::println("hello world");
 }
