@@ -9,9 +9,9 @@ use inkwell::{
 };
 
 pub struct Codegen<'ctx> {
-    builder: Builder<'ctx>,
-    context: &'ctx Context,
-    module: Module<'ctx>,
+    pub(super) builder: Builder<'ctx>,
+    pub(super) context: &'ctx Context,
+    pub(super) module: Module<'ctx>,
 }
 
 impl<'ctx> Codegen<'ctx> {

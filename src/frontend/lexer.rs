@@ -882,7 +882,9 @@ impl Buffer {
     pub fn get_word(&mut self) -> String {
         let mut ret = String::new();
         let mut is_in_str = false;
-        while self.in_bounds() && (self.current().is_alphanumeric() || self.current() == '_' || is_in_str) {
+        while self.in_bounds()
+            && (self.current().is_alphanumeric() || self.current() == '_' || is_in_str)
+        {
             if self.current() == '"' || self.current() == '\'' {
                 is_in_str = !is_in_str;
             }

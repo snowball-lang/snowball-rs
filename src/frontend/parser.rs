@@ -1,8 +1,11 @@
 use std::process::exit;
 
-use ariadne::{ReportKind, Report, Label, Source};
+use ariadne::{Label, Report, ReportKind, Source};
 
-use super::{lexer::{Token, TokType}, ast::{Node, TypeReference}};
+use super::{
+    ast::{Node, TypeReference},
+    lexer::{TokType, Token},
+};
 
 struct TokBuf {
     pos: usize,
@@ -12,7 +15,7 @@ struct TokBuf {
 impl TokBuf {
     pub fn new(toks: Vec<Token>) -> TokBuf {
         TokBuf { pos: 0, toks }
-    } 
+    }
 
     pub fn advance(&mut self) {
         if self.in_bounds() {
@@ -77,12 +80,16 @@ impl TokBuf {
 pub struct Parser {
     buf: TokBuf,
     prog: Vec<Node>,
-    src: String
+    src: String,
 }
 
 impl Parser {
     pub fn new(prog: Vec<Token>, src: String) -> Parser {
-        Parser { buf: TokBuf::new(prog), prog: Vec::new(), src }
+        Parser {
+            buf: TokBuf::new(prog),
+            prog: Vec::new(),
+            src,
+        }
     }
     pub fn parse(&mut self) -> Vec<Node> {
         let mut ret = Vec::new();
@@ -90,8 +97,13 @@ impl Parser {
             match self.buf.current().tok {
                 TokType::KWordFunc => {
                     // from: https://github.com/snowball-lang/snowball/blob/dev/src/parser/parseFunction.cc
-                    let name = self.buf.consume(vec![TokType::Ident]).expect("expected Ident");
-                    self.buf.consume(vec![TokType::BracketLParen]).expect("expected LParen");
+                    let name = self
+                        .buf
+                        .consume(vec![TokType::Ident])
+                        .expect("expected Ident");
+                    self.buf
+                        .consume(vec![TokType::BracketLParen])
+                        .expect("expected LParen");
                     self.arg_parser();
                 }
                 _ => todo!("unimplimented tok type: {:?}", self.buf.current().tok),
@@ -102,25 +114,41 @@ impl Parser {
     }
 
     //fn parse_type(&mut self) -> TypeReference {
-//
+    //
     //}
 
     fn arg_parser(&mut self) -> Vec<(String, String)> {
         let mut ret = Vec::new();
         loop {
-            let arg_name = self.consume_and_err(vec![TokType::Ident], "expected identifier for argument name", self.buf.get_cur_tok_line(), vec![((self.buf.get_cur_tok_span()), String::from("here"))]);
-            let arg_type = self.consume_and_err(vec![TokType::Ident], "expected type after argument name", self.buf.get_cur_tok_line(), vec![((self.buf.get_cur_tok_span()), String::from("here"))]);
+            let arg_name = self.consume_and_err(
+                vec![TokType::Ident],
+                "expected identifier for argument name",
+                self.buf.get_cur_tok_line(),
+                vec![((self.buf.get_cur_tok_span()), String::from("here"))],
+            );
+            let arg_type = self.consume_and_err(
+                vec![TokType::Ident],
+                "expected type after argument name",
+                self.buf.get_cur_tok_line(),
+                vec![((self.buf.get_cur_tok_span()), String::from("here"))],
+            );
             ret.push((arg_name.val, arg_type.val));
             match self.buf.consume(vec![TokType::SymbolComma]) {
                 Some(_) => self.buf.advance(),
-                None => break
+                None => break,
             }
         }
-        
+
         ret
     }
 
-    fn consume_and_err(&mut self, tok: Vec<TokType>, error: &str, lineno: usize, arrows: Vec<((usize, usize), String)>) -> Token {
+    fn consume_and_err(
+        &mut self,
+        tok: Vec<TokType>,
+        error: &str,
+        lineno: usize,
+        arrows: Vec<((usize, usize), String)>,
+    ) -> Token {
         match self.buf.consume(tok) {
             Some(t) => t,
             None => {
@@ -130,11 +158,10 @@ impl Parser {
         }
     }
 
-
     fn error(&self, error: String, lineno: usize, arrows: Vec<((usize, usize), String)>) {
         let mut labels = Vec::new();
         for arrow in arrows {
-            labels.push(Label::new(arrow.0.0..arrow.0.1).with_message(arrow.1));
+            labels.push(Label::new(arrow.0 .0..arrow.0 .1).with_message(arrow.1));
         }
         Report::build(ReportKind::Error, (), lineno)
             .with_message(error)
