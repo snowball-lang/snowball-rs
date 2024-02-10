@@ -5,6 +5,7 @@ mod compiler;
 mod frontend;
 mod ast;
 mod reports;
+mod utils;
 
 #[derive(ClapParser)]
 struct Args {

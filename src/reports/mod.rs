@@ -1,5 +1,5 @@
-use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 use std::io::Write;
+use crate::{bold, reset, red, blue, black};
 
 pub enum Error {
     UnexpectedChar(char),
@@ -83,12 +83,12 @@ impl CompileError {
                     add = true;
                 } else {
                     in_highlight = true;
-                    result.push_str(ColorSpec::new().set_bold(true).to_string());
+                    result.push_str(bold!());
                 }
             }
             result.push(str[i]);
             if add {
-                result.push_str(ColorSpec::new().set_bold(false).to_string());
+                result.push_str(reset!());
                 in_highlight = false;
             }
             i += 1;
@@ -97,14 +97,23 @@ impl CompileError {
     }
 
     fn print(&self) {
-        let mut bufwtr = BufferWriter::stderr(ColorChoice::Always);
-        let mut buffer = bufwtr.buffer();
-        buffer.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true));
-        write!(&mut buffer, "error");
-        buffer.set_color(ColorSpec::new().set_reset(true));
-        writeln!(&mut buffer, ": {}", Self::print_highlight(self.message.to_string()));
+        let result = format!(
+            "\n{}error{}: {}\n at [{}{}{}{}:{}{}{}:{}{}]\n",
+            red!(),
+            reset!(),
+            Self::print_highlight(self.message.to_string()),
+            black!(),
+            bold!(),
+            self.location.path,
+            reset!(),
+            bold!(),
+            blue!(),
+            self.location.line,
+            self.location.column,
+            reset!(),
+        );
 
-        bufwtr.print(&buffer).unwrap();
+        print!("{}", result);
     }
 }
 

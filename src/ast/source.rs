@@ -1,10 +1,10 @@
 
 #[derive(Debug, Clone)]
 pub struct SourceLocation {
-    path: String,
-    line: usize,
-    column: usize,
-    width: usize,
+    pub path: String,
+    pub line: usize,
+    pub column: usize,
+    pub width: usize,
 }
 
 impl SourceLocation {
