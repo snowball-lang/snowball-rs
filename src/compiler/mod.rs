@@ -5,7 +5,7 @@ pub fn default_file_loader(path: String) -> String {
     fs::read_to_string(path).unwrap()
 }
 
-static mut file_loader: fn(String) -> String = default_file_loader;
+pub static mut file_loader: fn(String) -> String = default_file_loader;
 
 pub struct Compiler {
     path: String,

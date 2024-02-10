@@ -16,6 +16,15 @@ impl SourceLocation {
             width,
         }
     }
+
+    pub fn with_width(&self, width: usize) -> SourceLocation {
+        SourceLocation {
+            path: self.path.clone(),
+            line: self.line,
+            column: self.column,
+            width,
+        }
+    }
 }
 
 struct PathHolder {

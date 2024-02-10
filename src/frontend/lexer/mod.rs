@@ -27,7 +27,7 @@ impl Lexer {
     Lexer {
       input: content.chars().map(|c| c as u8).collect(),
       read_position: 0,
-      location: SourceLocation::new(path, 0, 0, 0),
+      location: SourceLocation::new(path, 1, 0, 0),
       reports: Reports::new(),
       tokens: Vec::new(),
     }
@@ -176,7 +176,7 @@ impl Lexer {
                 '\'' => chr = '\'',
                 '"' => chr = '"',
                 _ => {
-                  self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.clone()));
+                  self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.with_width(2)));
                   chr = self.get_char(0);
                 }            }
         }
@@ -211,7 +211,7 @@ impl Lexer {
                         self.next_line();
                     },
                     _ => {
-                      self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.clone()));
+                      self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.with_width(2)));
                       string.push(self.get_char(0));
                     }
                 }
@@ -352,7 +352,7 @@ impl Lexer {
     }
 
     fn append_token(&mut self, token_type: TokenType, width: usize) {
-        self.tokens.push(Token::new(token_type, self.location.clone()));
+      self.tokens.push(Token::new(token_type, self.location.with_width(width)));
     }
 
     fn get_char(&self, offset: usize) -> char {
@@ -377,6 +377,6 @@ impl Lexer {
     }
 
     fn report_error(&mut self, error: Error) {
-      self.reports.add_error(CompileError::new(error, self.location.clone()));
+      self.reports.add_error(CompileError::new(error, self.location.with_width(1)));
     }
   }

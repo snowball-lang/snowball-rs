@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::{black, blue, bold, red, reset, yellow};
+use crate::{black, blue, bold, compiler::file_loader, red, reset, yellow};
 
 pub enum Error {
     UnexpectedChar(char),
@@ -103,14 +103,14 @@ impl CompileError {
             ErrorType::Error => format!("{}error", red!()),
             ErrorType::Warning => format!("{}warning", yellow!()),
         };
-        let result = format!(
-            "\n{}{}{}: {}\n at [{}{}{}{}:{}{}{}:{}{}]\n",
+        let mut result = format!(
+            "\n{}{}{}: {}{}\n at [{}{}{}:{}{}{}:{}{}]\n",
             bold!(),
             prefix,
             reset!(),
             Self::print_highlight(self.message.to_string()),
-            black!(),
             bold!(),
+            black!(),
             self.location.path,
             reset!(),
             bold!(),
@@ -120,6 +120,51 @@ impl CompileError {
             reset!(),
         );
 
+        let mut line: usize = 0;
+        let file_content;
+        unsafe { file_content = file_loader(self.location.path.clone()); }
+        result.push_str(format!("{}    |\n", black!()).as_str());
+        for l in file_content.lines() {
+            line += 1;
+            if (line as isize >= (self.location.line as isize - 2)) && (line <= self.location.line + 2) {
+                if line == self.location.line {
+                    let mut result_line = String::new();
+                    for (i, c) in l.chars().enumerate() {
+                        println!("{}: {}", i, c);
+                        if i as isize == (self.location.column as isize - 1) {
+                            result_line.push_str(reset!());
+                            result_line.push_str(bold!());
+                        }
+                        result_line.push(c);
+                        if i == ((self.location.column + self.location.width - 1)) {
+                            result_line.push_str(reset!());
+                            result_line.push_str(black!());
+                        }
+                    }
+                    result.push_str(format!("{:3} | {}\n", line, result_line).as_str());
+                    result.push_str(format!("{}    | ", black!()).as_str());
+                    for i in 0..l.len() {
+                        if i as isize == (self.location.column as isize - 1) {
+                            result.push_str(reset!());
+                            result.push_str(bold!());
+                            result.push_str(red!());
+                            for _ in 0..self.location.width {
+                                result.push_str("^");
+                            }
+                            result.push_str(reset!());
+                            break;
+                        } else {
+                            result.push_str(" ");
+                        }
+                    }
+                    result.push_str("\n");
+                } else {
+                    result.push_str(&format!("{}{:3} | {}\n", black!(), line, l));
+                }
+            }
+        }
+        result.push_str(format!("{}    |\n", black!()).as_str());
+        result.push_str(reset!());
         print!("{}", result);
     }
 }
