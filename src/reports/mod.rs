@@ -12,7 +12,7 @@ impl ToString for Error {
         match self {
             Error::UnexpectedChar(c) => format!("unexpected character: '{}'", c),
             Error::UnexpectedEOF => "unexpected end of file".to_string(),
-            Error::UnknownEscapeSequence(c) => format!("unknown escape sequence: '{}'", c),
+            Error::UnknownEscapeSequence(c) => format!("unknown escape sequence: '\\{}'", c),
         }
     }
 }

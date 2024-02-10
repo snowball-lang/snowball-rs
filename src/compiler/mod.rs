@@ -5,21 +5,24 @@ pub fn default_file_loader(path: String) -> String {
     fs::read_to_string(path).unwrap()
 }
 
+static mut file_loader: fn(String) -> String = default_file_loader;
+
 pub struct Compiler {
-    file_loader: fn(String) -> String,
     path: String,
 }
 
 impl Compiler {
     pub fn new(path: String) -> Compiler {
         Compiler {
-            file_loader: default_file_loader,
             path,
         }
     }
 
     pub fn run(&self) {
-        let source = (self.file_loader)(self.path.clone());
+        let source;
+        unsafe {
+            source = (file_loader)(self.path.clone());
+        }
         
         // TODO: Iterate through the folder but for now, we just get the file
         let mut lexer = crate::frontend::lexer::Lexer::new(source, self.path.clone());
@@ -32,8 +35,10 @@ impl Compiler {
         let tokens = lexer.get_tokens();
         println!("{:?}", tokens);
     }
+}
 
-    pub fn set_file_loader(&mut self, file_loader: fn(String) -> String) {
-        self.file_loader = file_loader;
+pub fn set_file_loader(new: fn(String) -> String) {
+    unsafe {
+        file_loader = new;
     }
 }
