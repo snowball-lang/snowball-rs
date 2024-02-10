@@ -76,16 +76,24 @@ pub enum TokenType {
     EOF,
   }
   
-  struct Token {
+  pub struct Token {
     token_type: TokenType,
+    location: crate::ast::source::SourceLocation,
   }
   
   impl Token {
-    fn new(token_type: TokenType) -> Token {
-      Token { token_type }
+    pub fn new(token_type: TokenType, location: crate::ast::source::SourceLocation) -> Token {
+      Token {
+        token_type,
+        location,
+      }
+    }
+
+    pub fn get_location(&self) -> crate::ast::source::SourceLocation {
+      self.location.clone()
     }
   
-    fn value(&self) -> String {
+    pub fn value(&self) -> String {
       match &self.token_type {
         TokenType::Identifier(value) => value.clone(),
         TokenType::Integer(value) => value.clone(),
@@ -164,8 +172,16 @@ pub enum TokenType {
         TokenType::EOF => String::from("<EOF>"),
       }
     }
-  
-    fn to_string(&self) -> String {
-      format!("Token({})", self.value())
-    }
+}
+
+impl ToString for Token {
+  fn to_string(&self) -> String {
+    format!("Token({})", self.value())
   }
+}
+
+impl std::fmt::Debug for Token {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", self.to_string())
+  }
+}

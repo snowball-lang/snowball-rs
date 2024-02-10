@@ -28,6 +28,9 @@ impl Compiler {
         if lexer.get_reports().handle_errors() {
             return;
         }
+
+        let tokens = lexer.get_tokens();
+        println!("{:?}", tokens);
     }
 
     pub fn set_file_loader(&mut self, file_loader: fn(String) -> String) {

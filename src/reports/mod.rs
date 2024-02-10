@@ -1,8 +1,9 @@
 use std::io::Write;
-use crate::{bold, reset, red, blue, black};
+use crate::{black, blue, bold, red, reset, yellow};
 
 pub enum Error {
     UnexpectedChar(char),
+    UnknownEscapeSequence(char),
     UnexpectedEOF,
 }
 
@@ -11,6 +12,7 @@ impl ToString for Error {
         match self {
             Error::UnexpectedChar(c) => format!("unexpected character: '{}'", c),
             Error::UnexpectedEOF => "unexpected end of file".to_string(),
+            Error::UnknownEscapeSequence(c) => format!("unknown escape sequence: '{}'", c),
         }
     }
 }
@@ -97,9 +99,14 @@ impl CompileError {
     }
 
     fn print(&self) {
+        let prefix = match self.error_type {
+            ErrorType::Error => format!("{}error", red!()),
+            ErrorType::Warning => format!("{}warning", yellow!()),
+        };
         let result = format!(
-            "\n{}error{}: {}\n at [{}{}{}{}:{}{}{}:{}{}]\n",
-            red!(),
+            "\n{}{}{}: {}\n at [{}{}{}{}:{}{}{}:{}{}]\n",
+            bold!(),
+            prefix,
             reset!(),
             Self::print_highlight(self.message.to_string()),
             black!(),
