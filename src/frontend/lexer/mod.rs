@@ -162,6 +162,7 @@ impl Lexer {
 
     fn lex_char(&mut self) {
         self.next_char(1);
+        let loc = self.location.clone();
         let mut chr = self.get_char(0);
         if chr == '\\' {
             self.next_char(1);
@@ -188,9 +189,11 @@ impl Lexer {
         }
         self.append_token(TokenType::Char(chr as u8), 3);
         self.next_char(1);
+        self.tokens.last_mut().unwrap().set_location(loc.with_width(3));
     }
 
     fn lex_string(&mut self) {
+        let pos = self.location.clone();
         self.next_char(1);
         let mut string = String::new();
         let col = self.location.column;
@@ -227,10 +230,12 @@ impl Lexer {
         }
         self.append_token(TokenType::String(string), self.location.column - col + 1);
         self.next_char(1);
+        self.tokens.last_mut().unwrap().set_location(pos.with_width(self.location.column - col + 1));
     }
 
     fn lex_identifier(&mut self) {
         let mut id = String::from(self.get_char(0));
+        let loc = self.location.clone();
         self.next_char(1);
         while (self.get_char(0).is_alphabetic() || self.get_char(0) == '_')
             || self.get_char(0).is_digit(10)
@@ -262,11 +267,18 @@ impl Lexer {
             "private" => self.append_token(TokenType::Private, 7),
             "const" => self.append_token(TokenType::Const, 5),
             "static" => self.append_token(TokenType::Static, 6),
+            "inline" => self.append_token(TokenType::Inline, 6),
+            "external" => self.append_token(TokenType::External, 8),
+            "abstract" => self.append_token(TokenType::Abstract, 8),
+            "final" => self.append_token(TokenType::Final, 5),
+            "override" => self.append_token(TokenType::Override, 8),
             _ => self.append_token(TokenType::Identifier(id.clone()), id.len()),
         }
+        self.tokens.last_mut().unwrap().set_location(loc.with_width(id.len()));
     }
 
     fn lex_number(&mut self) {
+        let loc = self.location.clone();
         let mut read_mode = ReadMode::Integer;
         if self.get_char(0) == '0' {
             match self.get_char(1) {
@@ -342,6 +354,7 @@ impl Lexer {
             ReadMode::Float => self.append_token(TokenType::Float(num.clone()), num.len()),
             _ => self.append_token(TokenType::Integer(num.clone()), num.len()),
         }
+        self.tokens.last_mut().unwrap().set_location(loc.with_width(num.len()));
         if is_range {
             self.consume(TokenType::Dot, 0);
             self.consume(TokenType::Dot, 0);

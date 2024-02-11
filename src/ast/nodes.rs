@@ -1,5 +1,6 @@
 use std::option::Option;
 use std::vec::Vec;
+use crate::ast::attrs::AttrHandler;
 
 pub enum BinaryOp {
     Add,
@@ -101,12 +102,13 @@ pub enum AST {
 }
 
 pub struct Node {
-    kind: AST,
+    kind: Box<AST>,
+    attrs: AttrHandler,
 }
 
 impl Node {
     pub fn new(kind: AST) -> Self {
-        Node { kind }
+        Node { kind: Box::new(kind), attrs: AttrHandler::new() }
     }
 
     pub fn get_kind(&self) -> &AST {

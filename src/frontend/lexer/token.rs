@@ -1,3 +1,6 @@
+use std::mem;
+
+#[derive(Clone, Debug)]
 pub enum TokenType {
     Identifier(String),
     Integer(String),
@@ -22,6 +25,11 @@ pub enum TokenType {
     Import,
     Const,
     Static,
+    Inline,
+    Abstract,
+    Override,
+    Final,
+    External,
     True,
     False,
     Fn,
@@ -76,6 +84,13 @@ pub enum TokenType {
     EOF,
 }
 
+impl PartialEq for TokenType {
+  fn eq(&self, other: &Self) -> bool {
+    std::mem::discriminant(self) == std::mem::discriminant(other)
+  }
+}
+
+#[derive(Clone)]
 pub struct Token {
     token_type: TokenType,
     location: crate::ast::source::SourceLocation,
@@ -93,9 +108,18 @@ impl Token {
         self.location.clone()
     }
 
+    pub fn set_location(&mut self, location: crate::ast::source::SourceLocation) {
+        self.location = location;
+    }
+
+    pub fn get_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
     pub fn value(&self) -> String {
         match &self.token_type {
             TokenType::Identifier(value) => value.clone(),
+            TokenType::Override => String::from("override"),
             TokenType::Integer(value) => value.clone(),
             TokenType::Float(value) => value.clone(),
             TokenType::String(value) => format!("\"{}\"", value),
@@ -118,9 +142,13 @@ impl Token {
             TokenType::Import => String::from("import"),
             TokenType::Const => String::from("const"),
             TokenType::Static => String::from("static"),
+            TokenType::Inline => String::from("inline"),
             TokenType::True => String::from("true"),
+            TokenType::External => String::from("external"),
+            TokenType::Abstract => String::from("abstract"),
+            TokenType::Final => String::from("final"),
             TokenType::False => String::from("false"),
-            TokenType::Fn => String::from("fn"),
+            TokenType::Fn => String::from("func"),
             TokenType::New => String::from("new"),
             TokenType::Super => String::from("super"),
             TokenType::OpenParen => String::from("("),

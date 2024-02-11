@@ -24,13 +24,13 @@ impl Compiler {
         // TODO: Iterate through the folder but for now, we just get the file
         let mut lexer = crate::frontend::lexer::Lexer::new(source, self.path.clone());
         lexer.lex();
-
         if lexer.get_reports().handle_errors() {
             return;
         }
-
-        let tokens = lexer.get_tokens();
-        println!("{:?}", tokens);
+        let mut parsr = crate::frontend::parser::Parser::new(&lexer);
+        if parsr.parse().is_err() {
+            parsr.get_reports().handle_errors();
+        }
     }
 }
 
