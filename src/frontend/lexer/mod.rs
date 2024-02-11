@@ -43,6 +43,7 @@ impl Lexer {
         while self.read_position < self.input.len() {
             self.handle_char();
         }
+        self.append_token(TokenType::EOF, 0);
     }
 
     fn handle_char(&mut self) {

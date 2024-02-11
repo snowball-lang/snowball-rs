@@ -1,4 +1,8 @@
 
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
+
+use crate::ast::nodes::{AstType, GenericDecl, Node, AST};
 use crate::frontend::lexer::{Lexer};
 use crate::frontend::lexer::token::{Token, TokenType};
 use crate::ast::attrs::{AstAttrs, AttrHandler, ExternalLinkage};
@@ -24,6 +28,21 @@ macro_rules! report {
     }
 }
 
+macro_rules! assert_token {
+    ($self:ident, $expected:expr, $expectation:expr) => {{
+        if *$self.token.get_type() != $expected {
+            report!($self, Error::ExpectedItem($self.token.value(), $expectation.to_string()));
+        }
+    }};
+}
+
+macro_rules! consume_token {
+    ($self:ident, $expected:expr, $expectation:expr) => {{
+        assert_token!($self, $expected, $expectation);
+        $self.next();
+    }};
+}
+
 impl Parser {
     pub fn new(l: &Lexer) -> Parser {
         Parser {
@@ -34,7 +53,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<(), ()> {
+    pub fn parse(&mut self) -> Result<Vec<Node>, ()> {
         self.parse_global(TokenType::EOF)
     }
 
@@ -61,8 +80,9 @@ impl Parser {
         }
     }
 
-    pub fn parse_global(&mut self, terminator: TokenType) -> Result<(), ()> {
+    pub fn parse_global(&mut self, terminator: TokenType) -> Result<Vec<Node>, ()> {
         let mut attrs = AttrHandler::new();
+        let mut nodes = Vec::new();
         while *self.token.get_type() != terminator {
             match self.token.get_type() {
                 TokenType::EOF => report!(self, Error::UnexpectedEOF),
@@ -165,11 +185,120 @@ impl Parser {
                         }),
                     }
                 }
-                
+                TokenType::Fn => {
+                    nodes.push(self.parse_function(attrs.clone())?);
+                }
                 _ => report!(self, Error::UnexpectedToken(self.token.value())),
             }
         }
-        Ok(())
+        Ok(nodes)
+    }
+
+    pub fn parse_function(&mut self, attrs: AttrHandler) -> Result<Node, ()> {
+        debug_assert!(*self.token.get_type() == TokenType::Fn);
+        self.next();
+        assert_token!(self, TokenType::Identifier("function name".to_string()), "function name");
+        let name = self.token.value();
+        self.next();
+        let generics = self.parse_generic_args_if_present()?;
+        consume_token!(self, TokenType::OpenParen, "function parameters");
+        let mut params = HashMap::new();
+        while *self.token.get_type() != TokenType::CloseParen {
+            match self.token.get_type() {
+                TokenType::Identifier(_) => {
+                    let param = self.token.value();
+                    if params.contains_key(&param) {
+                        report!(self, Error::UnexpectedToken(param.clone()), ErrorInfo {
+                            note: Some("Function parameters are used to specify the data that is being passed to a function".to_string()),
+                            info: Some("Function parameters must be unique".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                    self.next();
+                    consume_token!(self, TokenType::Colon, "parameter separator");
+                    let ty = self.parse_type()?;
+                    params.insert(param, ty);
+                }
+                _ => report!(self, Error::ExpectedItem("parameter".to_string(), "function parameter".to_string()), ErrorInfo {
+                    help: Some("Function parameters must be identifiers".to_string()),
+                    note: Some("Function parameters are used to specify the data that is being passed to a function".to_string()),
+                    info: Some("Expected an identifier for the function parameter".to_string()),
+                    ..Default::default()
+                }),
+            }
+        }
+        self.next();
+        let ret_ty = match self.token.get_type() {
+            TokenType::OpenBrace |
+            TokenType::Semicolon => AstType::new(Node::new(AST::Ident("void".to_string(), None))),
+            _ => self.parse_type()?,
+        };
+        let body = Some(Vec::new()); // TODO:
+        todo!();
+        Ok(Node::new(AST::FuncDef(name, params, ret_ty, body, generics)).with_attrs(attrs).clone())
+    }
+
+    pub fn parse_type(&mut self) -> Result<AstType, ()> {
+        match self.token.get_type() {
+            TokenType::Identifier(_) => {
+                let name = self.token.value();
+                self.next();
+                let mut generics = None;
+                while *self.token.get_type() == TokenType::LessThan {
+                    generics = Some(Vec::new());
+                    self.next();
+                    while *self.token.get_type() != TokenType::GreaterThan {
+                        generics.as_mut().unwrap().push(self.parse_type()?);
+                        if *self.token.get_type() == TokenType::Comma {
+                            self.next();
+                        }
+                    }
+                    self.next();
+                }
+                Ok(AstType::new(Node::new(AST::Ident(name, generics))))
+            }
+            _ => report!(self, Error::ExpectedItem("type".to_string(), "type".to_string()), ErrorInfo {
+                help: Some("Types can be identifiers, tuples, or arrays".to_string()),
+                note: Some("Types are used to specify the data that is being passed to a function or stored in a variable".to_string()),
+                info: Some("Expected an identifier, tuple, or array for the type".to_string()),
+                ..Default::default()
+            }),
+        }
+    }
+
+    pub fn parse_generic_args_if_present(&mut self) -> Result<Option<Vec<GenericDecl>>, ()> {
+        if let TokenType::LessThan = self.token.get_type() {
+            self.next();
+            let mut generics = None;
+            while *self.token.get_type() != TokenType::GreaterThan {
+                generics = Some(Vec::new());
+                match self.token.get_type() {
+                    TokenType::Identifier(_) => {
+                        let name = self.token.value();
+                        self.next();
+                        let mut impls = Vec::new();
+                        if let TokenType::Colon = self.token.get_type() {
+                            self.next();
+                            impls.push(self.parse_type()?);
+                            while *self.token.get_type() == TokenType::Pipe {
+                                self.next();
+                                impls.push(self.parse_type()?);
+                            }
+                        }
+                        generics.as_mut().unwrap().push(GenericDecl::new(name, impls));
+                    }
+                    _ => report!(self, Error::ExpectedItem("generic argument".to_string(), "generic argument".to_string()), ErrorInfo {
+                        help: Some("Generic arguments must be identifiers".to_string()),
+                        note: Some("Generic arguments are used to specify the data that is being passed to a generic type".to_string()),
+                        info: Some("Expected an identifier for the generic argument".to_string()),
+                        ..Default::default()
+                    }),
+                }
+            }
+            self.next();
+            return Ok(generics.clone());
+        } 
+        Ok(None)
     }
     
     pub fn next(&mut self) {

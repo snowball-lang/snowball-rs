@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::option::Option;
 use std::vec::Vec;
 use crate::ast::attrs::AttrHandler;
 
+#[derive(Debug, Clone)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -20,6 +22,7 @@ pub enum BinaryOp {
     Del,
 }
 
+#[derive(Debug, Clone)]
 pub struct AstType {
     ast: Node,
 }
@@ -34,6 +37,7 @@ impl AstType {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct GenericDecl {
     name: String,
     impls: Vec<AstType>,
@@ -53,6 +57,7 @@ impl GenericDecl {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ClassMember {
     name: String,
     ty: AstType,
@@ -72,6 +77,7 @@ impl ClassMember {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum AST {
     Return(Option<Node>),
     Break,
@@ -84,9 +90,9 @@ pub enum AST {
     Call(Node, Vec<Node>),
     Cast(Node, AstType),
     BinaryOp(BinaryOp, Node, Node, /* is_unary */ bool),
-    FuncDef(Option<Node>, Vec<Node>, Vec<Node>, Vec<GenericDecl>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<Vec<Node>>, Option<Vec<GenericDecl>>),
     VarDef(Option<Node>, Node),
-    Ident(String, Vec<AstType>),
+    Ident(String, Option<Vec<AstType>>),
     Int(i64),
     Float(f64),
     String(String),
@@ -101,17 +107,27 @@ pub enum AST {
     EnumDef(Option<Node>, Vec<Node>),
 }
 
+#[derive(Debug, Clone)]
 pub struct Node {
     kind: Box<AST>,
-    attrs: AttrHandler,
+    attrs: Option<AttrHandler>,
 }
 
 impl Node {
     pub fn new(kind: AST) -> Self {
-        Node { kind: Box::new(kind), attrs: AttrHandler::new() }
+        Node { kind: Box::new(kind), attrs: None }
     }
 
     pub fn get_kind(&self) -> &AST {
         &self.kind
+    }
+
+    pub fn with_attrs(&mut self, attrs: AttrHandler) -> &Self {
+        self.attrs = Some(attrs);
+        self
+    }
+
+    pub fn get_attrs(&self) -> Option<&AttrHandler> {
+        self.attrs.as_ref()
     }
 }

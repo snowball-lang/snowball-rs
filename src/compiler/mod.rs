@@ -27,10 +27,12 @@ impl Compiler {
         if lexer.get_reports().handle_errors() {
             return;
         }
-        let mut parsr = crate::frontend::parser::Parser::new(&lexer);
-        if parsr.parse().is_err() {
-            parsr.get_reports().handle_errors();
+        let mut parser = crate::frontend::parser::Parser::new(&lexer);
+        let result = parser.parse();
+        if parser.get_reports().handle_errors() {
+            return;
         }
+        println!("{:?}", result.unwrap());
     }
 }
 
