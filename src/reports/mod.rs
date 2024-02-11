@@ -6,6 +6,7 @@ pub enum Error {
     UnknownEscapeSequence(char),
     UnexpectedToken(String),
     ExpectedItem(String, String),
+    InvalidExternalSpecifier(String),
     UnexpectedEOF,
 }
 
@@ -17,6 +18,7 @@ impl ToString for Error {
             Error::UnknownEscapeSequence(c) => format!("unknown escape sequence: '\\{}'", c),
             Error::UnexpectedToken(t) => format!("unexpected token: '{}'", t.replace("\n", "\\n")),
             Error::ExpectedItem(item, after) => format!("expected '{}' after '{}'!", item, after),
+            Error::InvalidExternalSpecifier(data) => format!("invalid external specifier: '{}'", data),
         }
     }
 }
@@ -161,6 +163,9 @@ impl CompileError {
                             for _ in 0..self.location.width {
                                 result.push_str("^");
                             }
+                            if let Some(info) = &self.info.info {
+                                result.push_str(format!(" {}", info).as_str());
+                            }
                             result.push_str(reset!());
                             break;
                         } else {
@@ -176,19 +181,15 @@ impl CompileError {
         let mut append_extra = false;
         result.push_str(format!("{}{}    |\n", black!(), bold!()).as_str());
         if let Some(help) = &self.info.help {
-            result.push_str(format!("{}{}help: {}{}\n", reset!(), bold!(), reset!(), help).as_str());
+            result.push_str(format!("{}{}help: {}{}\n", reset!(), bold!(), reset!(), self.get_help_msg(help)).as_str());
             append_extra = true;
         }
         if let Some(note) = &self.info.note {
-            result.push_str(format!("{}{}note: {}{}\n", reset!(), bold!(), reset!(), note).as_str());
-            append_extra = true;
-        }
-        if let Some(info) = &self.info.info {
-            result.push_str(format!("{}{}info: {}{}\n", reset!(), bold!(), reset!(), info).as_str());
+            result.push_str(format!("{}{}note: {}{}\n", reset!(), bold!(), reset!(), self.get_help_msg(note)).as_str());
             append_extra = true;
         }
         if let Some(see) = &self.info.see {
-            result.push_str(format!("{}{} see: {}{}\n", reset!(), bold!(), reset!(), see).as_str());
+            result.push_str(format!("{}{} see: {}{}\n", reset!(), bold!(), reset!(), self.get_help_msg(see)).as_str());
             append_extra = true;
         }
         if append_extra {
@@ -198,16 +199,16 @@ impl CompileError {
         print!("{}", result);
     }
 
-    fn get_help_msg(&self, msg: String) -> String {
+    fn get_help_msg(&self, msg: &String) -> String {
         let mut result = String::new();
         for (i, line) in msg.lines().enumerate() {
             if i == 0 {
                 result.push_str(line);
             } else {
-                result.push_str(format!("\n{}    | {}{}", black!(), reset!(), line).as_str());
+                result.push_str(format!("\n{}{}    | {}{}", bold!(), black!(), reset!(), line).as_str());
             }
         }
-        result
+        Self::print_highlight(result)
     }
 }
 

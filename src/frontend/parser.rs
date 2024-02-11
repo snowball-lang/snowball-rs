@@ -1,7 +1,7 @@
 
 use crate::frontend::lexer::{Lexer};
 use crate::frontend::lexer::token::{Token, TokenType};
-use crate::ast::attrs::{AttrHandler, AstAttrs};
+use crate::ast::attrs::{AstAttrs, AttrHandler, ExternalLinkage};
 use crate::reports::{CompileError, Error, ErrorInfo, Reports};
 
 pub struct Parser {
@@ -75,6 +75,53 @@ impl Parser {
                     self.next();
                     attrs.add_attr(AstAttrs::Privacy(false));
                     self.assert_global_item_next("private".to_string())?;
+                }
+                TokenType::Static => {
+                    self.next();
+                    attrs.add_attr(AstAttrs::Static);
+                    self.assert_global_item_next("static".to_string())?;
+                }
+                TokenType::Inline => {
+                    self.next();
+                    attrs.add_attr(AstAttrs::Inline);
+                    self.assert_global_item_next("inline".to_string())?;
+                }
+                TokenType::External => {
+                    self.next();
+                    match self.token.get_type() {
+                        TokenType::String(data) => {
+                            match data.as_str() {
+                                "C" => attrs.add_attr(AstAttrs::External(ExternalLinkage::C)),
+                                "snowball" => attrs.add_attr(AstAttrs::External(ExternalLinkage::Snowball)),
+                                "system" => attrs.add_attr(AstAttrs::External(ExternalLinkage::System)),
+                                _ => report!(self, Error::InvalidExternalSpecifier(data.clone()), ErrorInfo {
+                                    help: Some("The external specifier must be one of the following: 'C', 'snowball', 'system'".to_string()),
+                                    info: Some("Not a valid external specifier!".to_string()),
+                                    note: Some("External specifiers are used to specify the data that is being imported from an external source".to_string()),
+                                    see: Some("https://snowball-lang.gitbook.io/docs/language-reference/external-specifier".to_string()),
+                                    ..Default::default()
+                                }),
+                            }
+                            self.next();
+                        }
+                        _ => report!(self, Error::ExpectedItem("external specifier".to_string(), "external".to_string()), ErrorInfo {
+                            help: Some("The external specifier must be a string literal".to_string()),
+                            note: Some("External specifiers are used to specify the data that is being imported from an external source".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/external-specifier".to_string()),
+                            ..Default::default()
+                        }),
+                    }
+                    self.assert_global_item_next("external".to_string())?;
+                }
+                TokenType::Abstract => {
+                    self.next();
+                    attrs.add_attr(AstAttrs::Abstract);
+                    self.assert_global_item_next("abstract".to_string())?;
+                }
+                TokenType::Final => {
+                    self.next();
+                    attrs.add_attr(AstAttrs::Final);
+                    self.assert_global_item_next("final".to_string())?;
                 }
                 _ => report!(self, Error::UnexpectedToken(self.token.value())),
             }
