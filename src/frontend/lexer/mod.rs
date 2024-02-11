@@ -1,50 +1,48 @@
-
-
 pub mod token;
 
-use crate::{ast::source::SourceLocation, compiler::Compiler};
-use crate::reports::{CompileError, Error, ErrorType, Reports};
 use crate::frontend::lexer::token::{Token, TokenType};
+use crate::reports::{CompileError, Error, ErrorType, Reports};
+use crate::{ast::source::SourceLocation, compiler::Compiler};
 
 pub struct Lexer {
-  input: Vec<u8>,
-  read_position: usize,
-  location: SourceLocation,
-  reports: Reports,
-  tokens: Vec<Token>,
+    input: Vec<u8>,
+    read_position: usize,
+    location: SourceLocation,
+    reports: Reports,
+    tokens: Vec<Token>,
 }
 
 enum ReadMode {
-  Integer,
-  Float,
-  Binary,
-  Octal,
-  Hex,
+    Integer,
+    Float,
+    Binary,
+    Octal,
+    Hex,
 }
 
 impl Lexer {
-  pub fn new(content: String, path: String) -> Lexer {
-    Lexer {
-      input: content.chars().map(|c| c as u8).collect(),
-      read_position: 0,
-      location: SourceLocation::new(path, 1, 0, 0),
-      reports: Reports::new(),
-      tokens: Vec::new(),
+    pub fn new(content: String, path: String) -> Lexer {
+        Lexer {
+            input: content.chars().map(|c| c as u8).collect(),
+            read_position: 0,
+            location: SourceLocation::new(path, 1, 0, 0),
+            reports: Reports::new(),
+            tokens: Vec::new(),
+        }
     }
-  }
 
-  pub fn get_reports(&self) -> &Reports {
-    &self.reports
-  }
+    pub fn get_reports(&self) -> &Reports {
+        &self.reports
+    }
 
     pub fn get_tokens(&self) -> &Vec<Token> {
-      &self.tokens
+        &self.tokens
     }
 
     pub fn lex(&mut self) {
-      while self.read_position < self.input.len() {
-        self.handle_char();
-      }
+        while self.read_position < self.input.len() {
+            self.handle_char();
+        }
     }
 
     fn handle_char(&mut self) {
@@ -176,9 +174,13 @@ impl Lexer {
                 '\'' => chr = '\'',
                 '"' => chr = '"',
                 _ => {
-                  self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.with_width(2)));
-                  chr = self.get_char(0);
-                }            }
+                    self.reports.add_error(CompileError::warning(
+                        Error::UnknownEscapeSequence(self.get_char(0)),
+                        self.location.with_width(2),
+                    ));
+                    chr = self.get_char(0);
+                }
+            }
         }
         self.next_char(1);
         if self.get_char(0) != '\'' {
@@ -209,10 +211,13 @@ impl Lexer {
                     '\'' => string.push('\''),
                     '\n' => {
                         self.next_line();
-                    },
+                    }
                     _ => {
-                      self.reports.add_error(CompileError::warning(Error::UnknownEscapeSequence(self.get_char(0)), self.location.with_width(2)));
-                      string.push(self.get_char(0));
+                        self.reports.add_error(CompileError::warning(
+                            Error::UnknownEscapeSequence(self.get_char(0)),
+                            self.location.with_width(2),
+                        ));
+                        string.push(self.get_char(0));
                     }
                 }
             } else {
@@ -227,7 +232,9 @@ impl Lexer {
     fn lex_identifier(&mut self) {
         let mut id = String::from(self.get_char(0));
         self.next_char(1);
-        while (self.get_char(0).is_alphabetic() || self.get_char(0) == '_') || self.get_char(0).is_digit(10) {
+        while (self.get_char(0).is_alphabetic() || self.get_char(0) == '_')
+            || self.get_char(0).is_digit(10)
+        {
             id.push(self.get_char(0));
             self.next_char(1);
         }
@@ -315,7 +322,7 @@ impl Lexer {
                     num.push(self.get_char(0));
                     self.next_char(1);
                 }
-            },
+            }
             _ => {}
         }
         let mut append_dot = false;
@@ -352,31 +359,33 @@ impl Lexer {
     }
 
     fn append_token(&mut self, token_type: TokenType, width: usize) {
-      self.tokens.push(Token::new(token_type, self.location.with_width(width)));
+        self.tokens
+            .push(Token::new(token_type, self.location.with_width(width)));
     }
 
     fn get_char(&self, offset: usize) -> char {
         if self.read_position + offset >= self.input.len() {
-          '\0'
+            '\0'
         } else {
-          self.input[self.read_position + offset] as char
+            self.input[self.read_position + offset] as char
         }
     }
 
     fn consume(&mut self, token_type: TokenType, mut width: usize) {
-      if width == 0 {
-        width = 1;
-      }
-      self.append_token(token_type, width);
-      self.next_char(width);
+        if width == 0 {
+            width = 1;
+        }
+        self.append_token(token_type, width);
+        self.next_char(width);
     }
 
     fn next_char(&mut self, width: usize) {
-      self.location.column += width;
-      self.read_position += width;
+        self.location.column += width;
+        self.read_position += width;
     }
 
     fn report_error(&mut self, error: Error) {
-      self.reports.add_error(CompileError::new(error, self.location.with_width(1)));
+        self.reports
+            .add_error(CompileError::new(error, self.location.with_width(1)));
     }
-  }
+}

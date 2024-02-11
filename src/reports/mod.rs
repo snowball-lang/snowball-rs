@@ -1,5 +1,5 @@
-use std::io::Write;
 use crate::{black, blue, bold, compiler::file_loader, red, reset, yellow};
+use std::io::Write;
 
 pub enum Error {
     UnexpectedChar(char),
@@ -19,7 +19,7 @@ impl ToString for Error {
 
 pub enum ErrorType {
     Error,
-    Warning
+    Warning,
 }
 
 pub struct CompileError {
@@ -44,7 +44,10 @@ impl CompileError {
         }
     }
 
-    pub fn warning(error_type: Error, location: crate::ast::source::SourceLocation) -> CompileError {
+    pub fn warning(
+        error_type: Error,
+        location: crate::ast::source::SourceLocation,
+    ) -> CompileError {
         CompileError {
             error_type: ErrorType::Warning,
             message: error_type,
@@ -68,7 +71,7 @@ impl CompileError {
     pub fn with_info(mut self, info: String) -> CompileError {
         self.info = Some(info);
         self
-    } 
+    }
 
     /// @brief replace 'hello' with [white]'hello'[reset]
     /// @param str input string
@@ -122,21 +125,24 @@ impl CompileError {
 
         let mut line: usize = 0;
         let file_content;
-        unsafe { file_content = file_loader(self.location.path.clone()); }
+        unsafe {
+            file_content = file_loader(self.location.path.clone());
+        }
         result.push_str(format!("{}    |\n", black!()).as_str());
         for l in file_content.lines() {
             line += 1;
-            if (line as isize >= (self.location.line as isize - 2)) && (line <= self.location.line + 2) {
+            if (line as isize >= (self.location.line as isize - 2))
+                && (line <= self.location.line + 2)
+            {
                 if line == self.location.line {
                     let mut result_line = String::new();
                     for (i, c) in l.chars().enumerate() {
-                        println!("{}: {}", i, c);
                         if i as isize == (self.location.column as isize - 1) {
                             result_line.push_str(reset!());
                             result_line.push_str(bold!());
                         }
                         result_line.push(c);
-                        if i == ((self.location.column + self.location.width - 1)) {
+                        if i == (self.location.column + self.location.width - 1) {
                             result_line.push_str(reset!());
                             result_line.push_str(black!());
                         }
@@ -169,16 +175,13 @@ impl CompileError {
     }
 }
 
-
 pub struct Reports {
     errors: Vec<CompileError>,
 }
 
 impl Reports {
     pub fn new() -> Reports {
-        Reports {
-            errors: Vec::new(),
-        }
+        Reports { errors: Vec::new() }
     }
 
     pub fn add_error(&mut self, error: CompileError) {

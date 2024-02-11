@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone)]
 pub struct SourceLocation {
     pub path: String,

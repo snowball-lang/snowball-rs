@@ -1,9 +1,8 @@
-
 use clap::Parser as ClapParser;
 
+mod ast;
 mod compiler;
 mod frontend;
-mod ast;
 mod reports;
 mod utils;
 
@@ -14,7 +13,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    
+
     let compiler = crate::compiler::Compiler::new(args.input);
     compiler.run();
 }

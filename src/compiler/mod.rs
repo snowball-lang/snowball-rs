@@ -1,4 +1,3 @@
-
 use std::fs;
 
 pub fn default_file_loader(path: String) -> String {
@@ -13,9 +12,7 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn new(path: String) -> Compiler {
-        Compiler {
-            path,
-        }
+        Compiler { path }
     }
 
     pub fn run(&self) {
@@ -23,7 +20,7 @@ impl Compiler {
         unsafe {
             source = (file_loader)(self.path.clone());
         }
-        
+
         // TODO: Iterate through the folder but for now, we just get the file
         let mut lexer = crate::frontend::lexer::Lexer::new(source, self.path.clone());
         lexer.lex();
