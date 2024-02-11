@@ -257,6 +257,7 @@ impl Lexer {
             "func" => self.append_token(TokenType::Fn, 2),
             "new" => self.append_token(TokenType::New, 3),
             "super" => self.append_token(TokenType::Super, 5),
+            "do" => self.append_token(TokenType::Do, 2),
             "import" => self.append_token(TokenType::Import, 6),
             "let" => self.append_token(TokenType::Let, 3),
             "mut" => self.append_token(TokenType::Mut, 3),

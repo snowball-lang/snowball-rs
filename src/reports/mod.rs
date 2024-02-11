@@ -6,6 +6,7 @@ pub enum Error {
     UnknownEscapeSequence(char),
     UnexpectedToken(String),
     ExpectedItem(String, String),
+    ExpectedItemAfter(String, String, String),
     InvalidExternalSpecifier(String),
     UnexpectedEOF,
 }
@@ -19,6 +20,9 @@ impl ToString for Error {
             Error::UnexpectedToken(t) => format!("unexpected token: '{}'", t.replace("\n", "\\n")),
             Error::ExpectedItem(item, after) => format!("expected '{}' after '{}'!", item, after),
             Error::InvalidExternalSpecifier(data) => format!("invalid external specifier: '{}'", data),
+            Error::ExpectedItemAfter(item, after, found) => {
+                format!("expected '{}' after '{}' but found '{}'", item, after, found)
+            }
         }
     }
 }

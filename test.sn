@@ -1,4 +1,4 @@
 
-public external "C" func main(a: i32) {
-
+public func main(a: i32) {
+    xd;
 }

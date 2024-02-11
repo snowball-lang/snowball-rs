@@ -7,6 +7,7 @@ use crate::frontend::lexer::{Lexer};
 use crate::frontend::lexer::token::{Token, TokenType};
 use crate::ast::attrs::{AstAttrs, AttrHandler, ExternalLinkage};
 use crate::reports::{CompileError, Error, ErrorInfo, Reports};
+use crate::ast::source::SourceLocation;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -31,7 +32,7 @@ macro_rules! report {
 macro_rules! assert_token {
     ($self:ident, $expected:expr, $expectation:expr) => {{
         if *$self.token.get_type() != $expected {
-            report!($self, Error::ExpectedItem($self.token.value(), $expectation.to_string()));
+            report!($self, Error::ExpectedItemAfter(Token::new($expected, SourceLocation::dummy()).value(), $expectation.to_string(), $self.token.value()));
         }
     }};
 }
@@ -233,9 +234,127 @@ impl Parser {
             TokenType::Semicolon => AstType::new(Node::new(AST::Ident("void".to_string(), None))),
             _ => self.parse_type()?,
         };
-        let body = Some(Vec::new()); // TODO:
-        todo!();
+        let body = Some(self.parse_block()?);
         Ok(Node::new(AST::FuncDef(name, params, ret_ty, body, generics)).with_attrs(attrs).clone())
+    }
+
+    pub fn parse_block(&mut self) -> Result<Node, ()> {
+        consume_token!(self, TokenType::OpenBrace, "block");
+        let mut nodes = Vec::new();
+        while *self.token.get_type() != TokenType::CloseBrace {
+            nodes.push(self.parse_statement()?);
+        }
+        self.next();
+        Ok(Node::new(AST::Block(nodes)))
+    }
+
+    pub fn parse_statement(&mut self) -> Result<Node, ()> {
+        match self.token.get_type() {
+            TokenType::Return => {
+                self.next();
+                let expr = match self.token.get_type() {
+                    TokenType::Semicolon => None,
+                    _ => Some(self.parse_expression()?),
+                };
+                consume_token!(self, TokenType::Semicolon, "return statement");
+                Ok(Node::new(AST::Return(expr)))
+            }
+            TokenType::Break => {
+                self.next();
+                consume_token!(self, TokenType::Semicolon, "break statement");
+                Ok(Node::new(AST::Break))
+            }
+            TokenType::Continue => {
+                self.next();
+                consume_token!(self, TokenType::Semicolon, "continue statement");
+                Ok(Node::new(AST::Continue))
+            }
+            TokenType::If => {
+                self.next();
+                consume_token!(self, TokenType::OpenParen, "if statement");
+                let cond = self.parse_expression()?;
+                consume_token!(self, TokenType::CloseParen, "if statement");
+                let then = self.parse_statement()?;
+                let mut els = Vec::new();
+                while *self.token.get_type() == TokenType::Else {
+                    self.next();
+                    if *self.token.get_type() == TokenType::If {
+                        self.next();
+                        consume_token!(self, TokenType::OpenParen, "else if statement");
+                        let cond = self.parse_expression()?;
+                        consume_token!(self, TokenType::CloseParen, "else if statement");
+                        let then = self.parse_statement()?;
+                        els.push(Node::new(AST::If(cond, then, Vec::new())));
+                    } else {
+                        let stmt = self.parse_statement()?;
+                        els.push(stmt);
+                    }
+                }
+                Ok(Node::new(AST::If(cond, then, els)))
+            }
+            TokenType::While => {
+                self.next();
+                consume_token!(self, TokenType::OpenParen, "while statement");
+                let cond = self.parse_expression()?;
+                consume_token!(self, TokenType::CloseParen, "while statement");
+                let body = self.parse_statement()?;
+                Ok(Node::new(AST::While(cond, vec![body], false)))
+            }
+            TokenType::Do => {
+                self.next();
+                let body = self.parse_statement()?;
+                consume_token!(self, TokenType::While, "do while statement");
+                consume_token!(self, TokenType::OpenParen, "do while statement");
+                let cond = self.parse_expression()?;
+                consume_token!(self, TokenType::CloseParen, "do while statement");
+                consume_token!(self, TokenType::Semicolon, "do while statement");
+                Ok(Node::new(AST::While(cond, vec![body], true)))
+            }
+            TokenType::OpenBrace => self.parse_block(),
+            _ => {
+                let expr = self.parse_expression()?;
+                consume_token!(self, TokenType::Semicolon, "expression statement");
+                Ok(expr)
+            }
+        }
+    }
+
+    pub fn parse_expression(&mut self) -> Result<Node, ()> {
+        match self.token.get_type() {
+            TokenType::Identifier(_) => {
+                let name = self.token.value();
+                self.next();
+                match self.token.get_type() {
+                    _ => Ok(Node::new(AST::Ident(name, None))),
+                }
+            }
+            TokenType::Integer(_) => {
+                let value = self.token.value();
+                self.next();
+                // parse the number to an i64
+                let value = value.parse::<i64>().unwrap();
+                Ok(Node::new(AST::Int(value)))
+            }
+            TokenType::Float(_) => {
+                let value = self.token.value();
+                self.next();
+                // parse the number to a f64
+                let value = value.parse::<f64>().unwrap();
+                Ok(Node::new(AST::Float(value)))
+            }
+            TokenType::String(_) => {
+                let value = self.token.value();
+                self.next();
+                Ok(Node::new(AST::String(value)))
+            }
+            TokenType::OpenParen => {
+                self.next();
+                let expr = self.parse_expression()?;
+                consume_token!(self, TokenType::CloseParen, "parenthesized expression");
+                Ok(expr)
+            }
+            _ => report!(self, Error::UnexpectedToken(self.token.value())),
+        }
     }
 
     pub fn parse_type(&mut self) -> Result<AstType, ()> {

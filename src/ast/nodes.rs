@@ -90,7 +90,7 @@ pub enum AST {
     Call(Node, Vec<Node>),
     Cast(Node, AstType),
     BinaryOp(BinaryOp, Node, Node, /* is_unary */ bool),
-    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<Vec<Node>>, Option<Vec<GenericDecl>>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<Node>, Option<Vec<GenericDecl>>),
     VarDef(Option<Node>, Node),
     Ident(String, Option<Vec<AstType>>),
     Int(i64),

@@ -24,6 +24,15 @@ impl SourceLocation {
             width,
         }
     }
+
+    pub fn dummy() -> SourceLocation {
+        SourceLocation {
+            path: String::new(),
+            line: 0,
+            column: 0,
+            width: 0,
+        }
+    }
 }
 
 struct PathHolder {
