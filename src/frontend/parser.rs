@@ -79,12 +79,30 @@ impl Parser {
                 TokenType::Static => {
                     self.next();
                     attrs.add_attr(AstAttrs::Static);
-                    self.assert_global_item_next("static".to_string())?;
+                    match self.token.get_type() {
+                        TokenType::Fn |
+                        TokenType::Const |
+                        TokenType::External => {}
+                        _ => report!(self, Error::ExpectedItem("function, constant, or external".to_string(), "static".to_string()), ErrorInfo {
+                            help: Some("The 'static' keyword can only be used with functions, constants, or externs".to_string()),
+                            note: Some("Static functions are used to specify that a function is a class method".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/static-functions".to_string()),
+                            ..Default::default()
+                        })
+                    }
                 }
                 TokenType::Inline => {
                     self.next();
                     attrs.add_attr(AstAttrs::Inline);
-                    self.assert_global_item_next("inline".to_string())?;
+                    match self.token.get_type() {
+                        TokenType::Fn => {}
+                        _ => report!(self, Error::ExpectedItem("function".to_string(), "inline".to_string()), ErrorInfo {
+                            help: Some("The 'inline' keyword can only be used with functions".to_string()),
+                            note: Some("Inline functions are used to specify that a function should be inlined by the compiler".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/inline-functions".to_string()),
+                            ..Default::default()
+                        }),
+                    }
                 }
                 TokenType::External => {
                     self.next();
@@ -111,18 +129,43 @@ impl Parser {
                             ..Default::default()
                         }),
                     }
-                    self.assert_global_item_next("external".to_string())?;
+                    match self.token.get_type() {
+                        TokenType::Fn => {}
+                        _ => report!(self, Error::ExpectedItem("function".to_string(), "external".to_string()), ErrorInfo {
+                            help: Some("The 'external' keyword can only be used with functions".to_string()),
+                            note: Some("External functions are used to specify that a function is being imported from an external source".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/external-functions".to_string()),
+                            ..Default::default()
+                        }),
+                    }
                 }
                 TokenType::Abstract => {
                     self.next();
                     attrs.add_attr(AstAttrs::Abstract);
-                    self.assert_global_item_next("abstract".to_string())?;
+                    match self.token.get_type() {
+                        TokenType::Class => {}
+                        _ => report!(self, Error::ExpectedItem("class".to_string(), "abstract".to_string()), ErrorInfo {
+                            help: Some("The 'abstract' keyword can only be used with classes".to_string()),
+                            note: Some("Abstract classes are used to specify that a class cannot be instantiated".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/classes/abstract-classes".to_string()),
+                            ..Default::default()
+                        }),
+                    }
                 }
                 TokenType::Final => {
                     self.next();
                     attrs.add_attr(AstAttrs::Final);
-                    self.assert_global_item_next("final".to_string())?;
+                    match self.token.get_type() {
+                        TokenType::Class => {}
+                        _ => report!(self, Error::ExpectedItem("class".to_string(), "final".to_string()), ErrorInfo {
+                            help: Some("The 'final' keyword can only be used with classes".to_string()),
+                            note: Some("Final classes are used to specify that a class cannot be inherited from".to_string()),
+                            see: Some("https://snowball-lang.gitbook.io/docs/language-reference/classes/final-classes".to_string()),
+                            ..Default::default()
+                        }),
+                    }
                 }
+                
                 _ => report!(self, Error::UnexpectedToken(self.token.value())),
             }
         }
