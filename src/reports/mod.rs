@@ -1,5 +1,5 @@
-use crate::{black, blue, bold, compiler::file_loader, red, reset, yellow};
-use std::io::Write;
+use crate::{black, blue, bold, red, reset, yellow};
+use std::{fs, io::Write};
 
 pub enum Error {
     UnexpectedChar(char),
@@ -134,10 +134,7 @@ impl CompileError {
         );
 
         let mut line: usize = 0;
-        let file_content;
-        unsafe {
-            file_content = file_loader(self.location.path.clone());
-        }
+        let file_content = fs::read_to_string(self.location.path.clone()).unwrap();
         result.push_str(format!("{}    |\n", black!()).as_str());
         for l in file_content.lines() {
             line += 1;

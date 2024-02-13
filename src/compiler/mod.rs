@@ -2,12 +2,6 @@ use std::fs;
 
 use crate::frontend::module::NamespacePath;
 
-pub fn default_file_loader(path: String) -> String {
-    fs::read_to_string(path).unwrap()
-}
-
-pub static mut file_loader: fn(String) -> String = default_file_loader;
-
 pub struct Compiler {
     path: String,
 }
@@ -18,10 +12,7 @@ impl Compiler {
     }
 
     pub fn run(&self) {
-        let source;
-        unsafe {
-            source = (file_loader)(self.path.clone());
-        }
+        let source = fs::read_to_string(self.path.clone()).expect("Something went wrong reading the file");
 
         // TODO: Iterate through the folder but for now, we just get the file
         let mut lexer = crate::frontend::lexer::Lexer::new(source, self.path.clone());
@@ -35,11 +26,5 @@ impl Compiler {
             return;
         }
         println!("{:?}", result);
-    }
-}
-
-pub fn set_file_loader(new: fn(String) -> String) {
-    unsafe {
-        file_loader = new;
     }
 }
