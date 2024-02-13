@@ -8,12 +8,16 @@ use crate::frontend::lexer::token::{Token, TokenType};
 use crate::ast::attrs::{AstAttrs, AttrHandler, ExternalLinkage};
 use crate::reports::{CompileError, Error, ErrorInfo, Reports};
 use crate::ast::source::SourceLocation;
+use crate::frontend::module::Module;
+
+use super::module::NamespacePath;
 
 pub struct Parser {
     tokens: Vec<Token>,
     token_index: usize,
     token: Token,
     reports: Reports,
+    module: Module<Node>
 }
 
 macro_rules! report {
@@ -45,17 +49,20 @@ macro_rules! consume_token {
 }
 
 impl Parser {
-    pub fn new(l: &Lexer) -> Parser {
+    pub fn new(path: NamespacePath, file_name: String, l: &Lexer) -> Parser {
         Parser {
             tokens: l.get_tokens().clone(),
             token_index: 0,
             token: l.get_tokens()[0].clone(),
             reports: Reports::new(),
+            module: Module::new(path, Some(file_name))
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Node>, ()> {
-        self.parse_global(TokenType::EOF)
+    pub fn parse(&mut self) -> Result<Module<Node>, ()> {
+        let nodes = self.parse_global(TokenType::EOF);
+        self.module.set_top(nodes.unwrap());
+        Ok(self.module.clone())
     }
 
     pub fn assert_global_item_next(&mut self, after: String) -> Result<(), ()> {

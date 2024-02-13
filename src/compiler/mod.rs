@@ -1,5 +1,7 @@
 use std::fs;
 
+use crate::frontend::module::NamespacePath;
+
 pub fn default_file_loader(path: String) -> String {
     fs::read_to_string(path).unwrap()
 }
@@ -27,12 +29,12 @@ impl Compiler {
         if lexer.get_reports().handle_errors() {
             return;
         }
-        let mut parser = crate::frontend::parser::Parser::new(&lexer);
+        let mut parser = crate::frontend::parser::Parser::new(NamespacePath::from_path(self.path.clone()), self.path.clone(), &lexer);
         let result = parser.parse();
         if parser.get_reports().handle_errors() {
             return;
         }
-        println!("{:?}", result.unwrap());
+        println!("{:?}", result);
     }
 }
 
