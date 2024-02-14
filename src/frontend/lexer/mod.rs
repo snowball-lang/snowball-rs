@@ -1,8 +1,8 @@
 pub mod token;
 
 use crate::frontend::lexer::token::{Token, TokenType};
-use crate::reports::{CompileError, Error, ErrorType, Reports};
-use crate::{ast::source::SourceLocation, compiler::Compiler};
+use crate::reports::{CompileError, Error, Reports};
+use crate::ast::source::SourceLocation;
 
 pub struct Lexer {
     input: Vec<u8>,

@@ -1,15 +1,13 @@
-
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 
-use crate::ast::nodes::{AstType, GenericDecl, Node, AST};
-use crate::frontend::lexer::{Lexer};
+use crate::ast::nodes::{AstType, GenericDecl, Node, AST, Expr, Stmt};
 use crate::frontend::lexer::token::{Token, TokenType};
 use crate::ast::attrs::{AstAttrs, AttrHandler, ExternalLinkage};
 use crate::reports::{CompileError, Error, ErrorInfo, Reports};
 use crate::ast::source::SourceLocation;
 use crate::frontend::module::Module;
 
+use super::lexer::Lexer;
 use super::module::NamespacePath;
 
 pub struct Parser {
@@ -61,7 +59,7 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<Module<Node>, ()> {
         let nodes = self.parse_global(TokenType::EOF);
-        self.module.set_top(nodes.unwrap());
+        self.module.set_top(AST::TopLevel(nodes?));
         Ok(self.module.clone())
     }
 
@@ -238,11 +236,11 @@ impl Parser {
         self.next();
         let ret_ty = match self.token.get_type() {
             TokenType::OpenBrace |
-            TokenType::Semicolon => AstType::new(Node::new(AST::Ident("void".to_string(), None))),
+            TokenType::Semicolon => AstType::new(Node::new(self.create_expr_ast(Expr::Ident("void".to_string(), None)))),
             _ => self.parse_type()?,
         };
         let body = Some(self.parse_block()?);
-        Ok(Node::new(AST::FuncDef(name, params, ret_ty, body, generics)).with_attrs(attrs).clone())
+        Ok(Node::new(self.create_stmt_ast(Stmt::FuncDef(name, params, ret_ty, body, generics))).with_attrs(attrs).clone())
     }
 
     pub fn parse_block(&mut self) -> Result<Node, ()> {
@@ -252,7 +250,7 @@ impl Parser {
             nodes.push(self.parse_statement()?);
         }
         self.next();
-        Ok(Node::new(AST::Block(nodes)))
+        Ok(Node::new(self.create_stmt_ast(Stmt::Block(nodes))))
     }
 
     pub fn parse_statement(&mut self) -> Result<Node, ()> {
@@ -264,17 +262,17 @@ impl Parser {
                     _ => Some(self.parse_expression()?),
                 };
                 consume_token!(self, TokenType::Semicolon, "return statement");
-                Ok(Node::new(AST::Return(expr)))
+                Ok(Node::new(self.create_stmt_ast(Stmt::Return(expr))))
             }
             TokenType::Break => {
                 self.next();
                 consume_token!(self, TokenType::Semicolon, "break statement");
-                Ok(Node::new(AST::Break))
+                Ok(Node::new(self.create_stmt_ast(Stmt::Break)))
             }
             TokenType::Continue => {
                 self.next();
                 consume_token!(self, TokenType::Semicolon, "continue statement");
-                Ok(Node::new(AST::Continue))
+                Ok(Node::new(self.create_stmt_ast(Stmt::Continue)))
             }
             TokenType::If => {
                 self.next();
@@ -291,13 +289,13 @@ impl Parser {
                         let cond = self.parse_expression()?;
                         consume_token!(self, TokenType::CloseParen, "else if statement");
                         let then = self.parse_statement()?;
-                        els.push(Node::new(AST::If(cond, then, Vec::new())));
+                        els.push(Node::new(self.create_stmt_ast(Stmt::If(cond, then, Vec::new()))));
                     } else {
                         let stmt = self.parse_statement()?;
                         els.push(stmt);
                     }
                 }
-                Ok(Node::new(AST::If(cond, then, els)))
+                Ok(Node::new(self.create_stmt_ast(Stmt::If(cond, then, els))))
             }
             TokenType::While => {
                 self.next();
@@ -305,7 +303,7 @@ impl Parser {
                 let cond = self.parse_expression()?;
                 consume_token!(self, TokenType::CloseParen, "while statement");
                 let body = self.parse_statement()?;
-                Ok(Node::new(AST::While(cond, vec![body], false)))
+                Ok(Node::new(self.create_stmt_ast(Stmt::While(cond, vec![body], false))))
             }
             TokenType::Do => {
                 self.next();
@@ -315,7 +313,7 @@ impl Parser {
                 let cond = self.parse_expression()?;
                 consume_token!(self, TokenType::CloseParen, "do while statement");
                 consume_token!(self, TokenType::Semicolon, "do while statement");
-                Ok(Node::new(AST::While(cond, vec![body], true)))
+                Ok(Node::new(self.create_stmt_ast(Stmt::While(cond, vec![body], true))))
             }
             TokenType::OpenBrace => self.parse_block(),
             _ => {
@@ -332,7 +330,7 @@ impl Parser {
                 let name = self.token.value();
                 self.next();
                 match self.token.get_type() {
-                    _ => Ok(Node::new(AST::Ident(name, None))),
+                    _ => Ok(Node::new(self.create_expr_ast(Expr::Ident(name, None)))),
                 }
             }
             TokenType::Integer(_) => {
@@ -340,19 +338,19 @@ impl Parser {
                 self.next();
                 // parse the number to an i64
                 let value = value.parse::<i64>().unwrap();
-                Ok(Node::new(AST::Int(value)))
+                Ok(Node::new(self.create_expr_ast(Expr::Int(value))))
             }
             TokenType::Float(_) => {
                 let value = self.token.value();
                 self.next();
                 // parse the number to a f64
                 let value = value.parse::<f64>().unwrap();
-                Ok(Node::new(AST::Float(value)))
+                Ok(Node::new(self.create_expr_ast(Expr::Float(value))))
             }
             TokenType::String(_) => {
                 let value = self.token.value();
                 self.next();
-                Ok(Node::new(AST::String(value)))
+                Ok(Node::new(self.create_expr_ast(Expr::String(value))))
             }
             TokenType::OpenParen => {
                 self.next();
@@ -381,7 +379,7 @@ impl Parser {
                     }
                     self.next();
                 }
-                Ok(AstType::new(Node::new(AST::Ident(name, generics))))
+                Ok(AstType::new(Node::new(self.create_expr_ast(Expr::Ident(name, generics)))))
             }
             _ => report!(self, Error::ExpectedItem("type".to_string(), "type".to_string()), ErrorInfo {
                 help: Some("Types can be identifiers, tuples, or arrays".to_string()),
@@ -403,6 +401,7 @@ impl Parser {
                         let name = self.token.value();
                         self.next();
                         let mut impls = Vec::new();
+                        let mut default = None;
                         if let TokenType::Colon = self.token.get_type() {
                             self.next();
                             impls.push(self.parse_type()?);
@@ -411,7 +410,11 @@ impl Parser {
                                 impls.push(self.parse_type()?);
                             }
                         }
-                        generics.as_mut().unwrap().push(GenericDecl::new(name, impls));
+                        if let TokenType::Equal = self.token.get_type() {
+                            self.next();
+                            default = Some(self.parse_type()?);
+                        }
+                        generics.as_mut().unwrap().push(GenericDecl::new(name, impls, default));
                     }
                     _ => report!(self, Error::ExpectedItem("generic argument".to_string(), "generic argument".to_string()), ErrorInfo {
                         help: Some("Generic arguments must be identifiers".to_string()),
@@ -425,6 +428,14 @@ impl Parser {
             return Ok(generics.clone());
         } 
         Ok(None)
+    }
+
+    pub fn create_expr_ast(&mut self, ast: Expr) -> AST {
+        AST::Expr(ast)
+    }
+
+    pub fn create_stmt_ast(&mut self, ast: Stmt) -> AST {
+        AST::Stmt(ast)
     }
     
     pub fn next(&mut self) {

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NamespacePath {
@@ -38,10 +38,10 @@ impl ToString for NamespacePath {
 
 
 #[derive(Debug, Clone)]
-pub struct Module<T: Clone> {
+pub struct Module<T: Clone = Node> {
     path: NamespacePath,
     file_name: Option<String>,
-    top: Vec<T>,
+    top: Option<AST<T>>,
 }
 
 impl<T: Clone> Module<T> {
@@ -49,11 +49,15 @@ impl<T: Clone> Module<T> {
         Module {
             path,
             file_name,
-            top: Vec::new(),
+            top: None,
         }
     }
 
-    pub fn set_top(&mut self, top: Vec<T>) {
-        self.top = top;
+    pub fn set_top(&mut self, top: AST<T>) {
+        self.top = Some(top);
+    }
+
+    pub fn get_top(&self) -> &AST<T> {
+        &self.top.unwrap()
     }
 }
