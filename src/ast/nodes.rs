@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::option::Option;
 use std::vec::Vec;
+use crate::ast::source::SourceLocation;
 use crate::ast::attrs::AttrHandler;
 
 #[derive(Debug, Clone)]
@@ -80,32 +81,23 @@ impl ClassMember {
 }
 
 #[derive(Debug, Clone)]
-pub enum AST<T: std::fmt::Debug + Clone = Node, E: std::fmt::Debug + Clone = ExprNode> {
+pub enum AST<T: std::fmt::Debug + Clone = Node> {
     TopLevel(Vec<T>),
-    Stmt(Stmt<T>),
-    Expr(Expr<E>),
-}
-
-#[derive(Debug, Clone)]
-pub enum Stmt<T: std::fmt::Debug + Clone = Node> {
     Return(Option<T>),
     Break,
     Continue,
     If(T, T, Vec<T>),
-    While(T, Vec<T>, /* is_do_while */ bool),
+    While(T, T, /* is_do_while */ bool),
     For(T, T, T, Vec<T>),
     Block(Vec<T>),
     FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<T>, Option<Vec<GenericDecl>>),
-    VarDef(Option<T>, T),
+    VarDef(String, Option<AstType>, Option<T>),
     ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl>),
     NamespaceDef(Option<T>, Vec<T>),
     Import(T),
     InterfaceDef(Option<T>, Vec<T>, Vec<GenericDecl>),
     EnumDef(Option<T>, Vec<T>),
-}
-
-#[derive(Debug, Clone)]
-pub enum Expr<T: std::fmt::Debug + Clone = ExprNode> {
+    Empty,
     ClassInit(AstType, Vec<T>),
     ClassAccess(T, String),
     NamespaceAccess(T, String),
@@ -124,17 +116,12 @@ pub enum Expr<T: std::fmt::Debug + Clone = ExprNode> {
 pub struct Node {
     kind: Box<AST>,
     attrs: Option<AttrHandler>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ExprNode {
-    kind: Box<Expr>,
-    attrs: Option<AttrHandler>,
+    location: Option<SourceLocation>,
 }
 
 impl Node {
     pub fn new(kind: AST) -> Self {
-        Node { kind: Box::new(kind), attrs: None }
+        Node { kind: Box::new(kind), attrs: None, location: None }
     }
 
     pub fn get_kind(&self) -> &AST {
@@ -148,5 +135,14 @@ impl Node {
 
     pub fn get_attrs(&self) -> Option<&AttrHandler> {
         self.attrs.as_ref()
+    }
+
+    pub fn with_location(&mut self, location: SourceLocation) -> Self {
+        self.location = Some(location);
+        self.clone()
+    }
+
+    pub fn get_location(&self) -> Option<&SourceLocation> {
+        self.location.as_ref()
     }
 }

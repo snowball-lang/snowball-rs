@@ -1,4 +1,6 @@
 
-public func main(a: i32) {
-    xd;
+public func main(b: i32,a: i32) {
+    while a {
+        let xd = 25;
+    }
 }

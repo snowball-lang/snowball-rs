@@ -25,6 +25,10 @@ impl Compiler {
         if parser.get_reports().handle_errors() {
             return;
         }
-        println!("{:?}", result);
+        let mut typechecker = crate::frontend::type_checker::Typechecker::new();
+        let typed_module = typechecker.typecheck(result.unwrap());
+        if typechecker.get_reports().handle_errors() {
+            return;
+        }
     }
 }

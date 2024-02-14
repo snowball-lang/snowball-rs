@@ -9,7 +9,6 @@ mod utils;
 #[derive(ClapParser)]
 #[clap(name = "Snowball Compiler", version = "0.1.0", author = "Snowball")]
 struct Args {
-    // we can have "run" or "build" as the subcommand
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
@@ -21,12 +20,14 @@ enum SubCommand {
 }
 
 #[derive(ClapParser)]
+#[clap(name = "Run", about = "Build and Run the code", alias = "r")]
 struct Run {
     #[clap(short, long, default_value = "./")]
     path: String,
 }
 
 #[derive(ClapParser)]
+#[clap(name = "Build", about = "Build the project", alias = "b")]
 struct Build {
     #[clap(short, long, default_value = "./")]
     path: String,

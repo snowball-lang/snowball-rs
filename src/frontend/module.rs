@@ -1,4 +1,6 @@
 use std::path::Path;
+use crate::ast::nodes::AST;
+use crate::ast::nodes::Node;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NamespacePath {
@@ -28,6 +30,16 @@ impl NamespacePath {
     pub fn from_path(path: String) -> Self {
         Self::new(Path::new(&path).with_extension("").as_path().iter().map(|x|x.to_str().unwrap().to_string()).collect())
     }
+
+    pub fn push(&mut self, segment: String) {
+        self.segments.push(segment);
+    }
+
+    pub fn push_path(&mut self, path: NamespacePath) {
+        for segment in path.get_segments() {
+            self.push(segment.clone());
+        }
+    }
 }
 
 impl ToString for NamespacePath {
@@ -38,15 +50,15 @@ impl ToString for NamespacePath {
 
 
 #[derive(Debug, Clone)]
-pub struct Module<T: Clone = Node> {
+pub struct Module<T: Clone + std::fmt::Debug = Node> {
     path: NamespacePath,
     file_name: Option<String>,
     top: Option<AST<T>>,
 }
 
-impl<T: Clone> Module<T> {
+impl<T: Clone + std::fmt::Debug> Module<T> {
     pub fn new(path: NamespacePath, file_name: Option<String>) -> Self {
-        Module {
+        Module::<T> {
             path,
             file_name,
             top: None,
@@ -58,6 +70,14 @@ impl<T: Clone> Module<T> {
     }
 
     pub fn get_top(&self) -> &AST<T> {
-        &self.top.unwrap()
+        &(self.top.as_ref().unwrap())
+    }
+
+    pub fn get_path(&self) -> &NamespacePath {
+        &self.path
+    }
+
+    pub fn get_file_name(&self) -> &Option<String> {
+        &self.file_name
     }
 }
