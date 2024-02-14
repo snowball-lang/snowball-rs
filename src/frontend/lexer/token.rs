@@ -1,5 +1,3 @@
-use std::mem;
-
 #[derive(Clone, Debug)]
 pub enum TokenType {
     Identifier(String),

@@ -1,5 +1,5 @@
 use crate::{black, blue, bold, red, reset, yellow};
-use std::{fs, io::Write};
+use std::fs;
 
 pub enum Error {
     UnexpectedChar(char),

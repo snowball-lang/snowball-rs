@@ -1,3 +1,4 @@
-pub(crate) mod lexer;
-pub(crate) mod parser;
-pub(crate) mod module;
+pub mod lexer;
+pub mod parser;
+pub mod module;
+pub mod type_checker;

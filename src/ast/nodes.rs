@@ -20,6 +20,7 @@ pub enum BinaryOp {
     Or,
     New,
     Del,
+    Index,
 }
 
 #[derive(Debug, Clone)]
@@ -40,12 +41,13 @@ impl AstType {
 #[derive(Debug, Clone)]
 pub struct GenericDecl {
     name: String,
+    default: Option<AstType>,
     impls: Vec<AstType>,
 }
 
 impl GenericDecl {
-    pub fn new(name: String, impls: Vec<AstType>) -> Self {
-        GenericDecl { name, impls }
+    pub fn new(name: String, impls: Vec<AstType>, default: Option<AstType>) -> Self {
+        GenericDecl { name, impls, default }
     }
 
     pub fn get_name(&self) -> &String {
@@ -78,38 +80,55 @@ impl ClassMember {
 }
 
 #[derive(Debug, Clone)]
-pub enum AST {
-    Return(Option<Node>),
+pub enum AST<T: std::fmt::Debug + Clone = Node, E: std::fmt::Debug + Clone = ExprNode> {
+    TopLevel(Vec<T>),
+    Stmt(Stmt<T>),
+    Expr(Expr<E>),
+}
+
+#[derive(Debug, Clone)]
+pub enum Stmt<T: std::fmt::Debug + Clone = Node> {
+    Return(Option<T>),
     Break,
     Continue,
-    If(Node, Node, Vec<Node>),
-    While(Node, Vec<Node>, /* is_do_while */ bool),
-    For(Node, Node, Node, Vec<Node>),
-    Block(Vec<Node>),
-    Assign(Node, Node),
-    Call(Node, Vec<Node>),
-    Cast(Node, AstType),
-    BinaryOp(BinaryOp, Node, Node, /* is_unary */ bool),
-    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<Node>, Option<Vec<GenericDecl>>),
-    VarDef(Option<Node>, Node),
+    If(T, T, Vec<T>),
+    While(T, Vec<T>, /* is_do_while */ bool),
+    For(T, T, T, Vec<T>),
+    Block(Vec<T>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<T>, Option<Vec<GenericDecl>>),
+    VarDef(Option<T>, T),
+    ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl>),
+    NamespaceDef(Option<T>, Vec<T>),
+    Import(T),
+    InterfaceDef(Option<T>, Vec<T>, Vec<GenericDecl>),
+    EnumDef(Option<T>, Vec<T>),
+}
+
+#[derive(Debug, Clone)]
+pub enum Expr<T: std::fmt::Debug + Clone = ExprNode> {
+    ClassInit(AstType, Vec<T>),
+    ClassAccess(T, String),
+    NamespaceAccess(T, String),
     Ident(String, Option<Vec<AstType>>),
     Int(i64),
     Float(f64),
     String(String),
     Bool(bool),
-    ClassDef(Option<Node>, Vec<ClassMember>, Vec<GenericDecl>),
-    ClassInit(AstType, Vec<Node>),
-    ClassAccess(Node, String),
-    NamespaceDef(Option<Node>, Vec<Node>),
-    NamespaceAccess(Node, String),
-    Import(Node),
-    InterfaceDef(Option<Node>, Vec<Node>, Vec<GenericDecl>),
-    EnumDef(Option<Node>, Vec<Node>),
+    Call(T, Vec<T>),
+    Cast(T, AstType),
+    BinaryOp(BinaryOp, T, T, /* is_unary */ bool),
+    Assign(T, T),
 }
 
 #[derive(Debug, Clone)]
 pub struct Node {
     kind: Box<AST>,
+    attrs: Option<AttrHandler>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprNode {
+    kind: Box<Expr>,
     attrs: Option<AttrHandler>,
 }
 
