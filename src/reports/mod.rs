@@ -9,6 +9,8 @@ pub enum Error {
     ExpectedItemAfter(String, String, String),
     InvalidExternalSpecifier(String),
     RepeatedParameter(String),
+    UnknownVariable(String),
+    UnexpectedItem(String, String),
     UnexpectedEOF,
     ExcessiveSemicolon,
 }
@@ -21,8 +23,12 @@ impl ToString for Error {
             Error::UnknownEscapeSequence(c) => format!("unknown escape sequence: '\\{}'", c),
             Error::UnexpectedToken(t) => format!("unexpected token: '{}'", t.replace("\n", "\\n")),
             Error::ExpectedItem(item, after) => format!("expected '{}' after '{}'!", item, after),
+            Error::UnknownVariable(var) => format!("Variable with name '{}' not found!", var),
             Error::InvalidExternalSpecifier(data) => format!("invalid external specifier: '{}'", data),
             Error::RepeatedParameter(param) => format!("repeated parameter: '{}'", param),
+            Error::UnexpectedItem(expected, found) => {
+                format!("expected '{}' here but found '{}'", expected, found)
+            }
             Error::ExcessiveSemicolon => "excessive semicolons found!".to_string(),
             Error::ExpectedItemAfter(item, after, found) => {
                 format!("expected '{}' after '{}' but found '{}'", item, after, found)

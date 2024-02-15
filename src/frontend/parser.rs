@@ -246,7 +246,7 @@ impl Parser {
         self.next();
         let ret_ty = match self.token.get_type() {
             TokenType::OpenBrace |
-            TokenType::Semicolon => AstType::new(Node::new(AST::Ident("void".to_string(), None))),
+            TokenType::Semicolon => AstType::new(Node::new(AST::Ident("void".to_string(), None)).with_location(self.token.get_location())),
             _ => self.parse_type()?,
         };
         let body = Some(self.parse_block()?);
@@ -398,6 +398,7 @@ impl Parser {
     }
 
     pub fn parse_type(&mut self) -> Result<AstType, ()> {
+        let location = self.token.get_location();
         match self.token.get_type() {
             TokenType::Identifier(_) => {
                 let name = self.token.value();
@@ -414,7 +415,7 @@ impl Parser {
                     }
                     self.next();
                 }
-                Ok(AstType::new(Node::new(AST::Ident(name, generics))))
+                Ok(AstType::new(Node::new(AST::Ident(name, generics)).with_location(location)))
             }
             _ => report!(self, Error::ExpectedItem("type".to_string(), "type".to_string()), ErrorInfo {
                 help: Some("Types can be identifiers, tuples, or arrays".to_string()),

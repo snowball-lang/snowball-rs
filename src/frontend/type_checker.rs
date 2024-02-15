@@ -5,15 +5,17 @@ use crate::ast::typed::TypedNode;
 
 use crate::ast::nodes::Node;
 use crate::frontend::module::{Module, NamespacePath};
-use crate::reports::{CompileError, ErrorInfo, ErrorType, Reports};
+use crate::reports::{CompileError, ErrorInfo, Error, Reports};
+use crate::ast::nodes::AstType;
 
+#[derive(Clone)]
 pub enum UnificationType {
-    Literal(LiteralTypes),
     Known(Type),
     TypeVariable(usize),
     Generic(String)
 }
 
+#[derive(Clone)]
 pub enum Type {
     Integer {
         size: usize,
@@ -35,55 +37,10 @@ pub enum Type {
     Reference {
         ty: Box<UnificationType>
     },
+    Void
 }
 
-impl UnificationType {
-    pub fn try_coerce(&self, to: UnificationType) -> Option<UnificationType> {
-        if let UnificationType::Literal(l) = self {
-            if l == &LiteralTypes::Integer {
-                match to {
-                    UnificationType::Known(Type::Integer { .. }) => return Some(to),
-                    UnificationType::Literal(LiteralTypes::Integer) => return Some(to),
-                    _ => return None
-                }
-            } else if l == &LiteralTypes::Float {
-                match to {
-                    UnificationType::Known(Type::Float { .. }) => return Some(to),
-                    UnificationType::Literal(LiteralTypes::Float) => return Some(to),
-                    _ => return None
-                }
-            }
-        }
-        None
-    }
-}
-
-impl PartialEq<Type> for LiteralTypes {
-    fn eq(&self, other: &Type) -> bool {
-        match self {
-            LiteralTypes::Float => {
-                match other {
-                    Type::Float { .. } => true,
-                    _ => false
-                }
-            }
-            LiteralTypes::Integer => {
-                match other {
-                    Type::Integer { .. } => true,
-                    _ => false
-                }
-            }
-        }
-    }
-}
-
-#[derive(PartialEq)]
-pub enum LiteralTypes {
-    Integer,
-    Float,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionSymbol {
     ast: Node
 }
@@ -101,23 +58,30 @@ impl FunctionSymbol {
 }
 
 pub struct Typechecker {
-    types: HashMap<usize, UnificationType>, // TODO: Figure out changing it to a vec
+    types: HashMap<String, UnificationType>, // TODO: Figure out changing it to a vec
     functions: Vec<(NamespacePath, FunctionSymbol)>,
-    scope: Vec<HashMap<String, UnificationType>>,
+    scope: Vec<HashMap<String, Symbol>>,
     reports: Reports
 }
 
 macro_rules! report {
     ($self:ident, $error_type:expr, $node:expr) => { {
-        $self.reports.add_error(CompileError::new($error_type, $node.get_location().unwrap()));
+        $self.reports.add_error(CompileError::new($error_type, $node.get_location().unwrap().clone()));
         return Err(());
     }
     };
     ($self:ident, $error_type:expr, $node:expr, $info:expr) => {{
-        $self.reports.add_error(CompileError::new($error_type, $node.get_location().unwrap()).with_info($info));
+        $self.reports.add_error(CompileError::new($error_type, $node.get_location().unwrap().clone()).with_info($info));
         return Err(());
     }
     }
+}
+
+#[derive(Clone)]
+pub enum Symbol {
+    Variable(UnificationType),
+    Function(FunctionSymbol),
+    Type(UnificationType)
 }
 
 impl Typechecker {
@@ -133,25 +97,23 @@ impl Typechecker {
     pub fn typecheck(&mut self, module: Module<Node>) -> Module<TypedNode> {
         let mut new_module = Module::<TypedNode>::new(module.get_path().clone(), module.get_file_name().clone());
         let mut new_top = Vec::new();
+        self.initialize_builtin_types();
         self.run_checks(module.clone(), &mut new_top);
         new_module.set_top(AST::TopLevel(new_top));
         new_module
     }
 
     pub fn initialize_builtin_types(&mut self) {
-        self.types.insert(0, UnificationType::Literal(LiteralTypes::Integer));
-        self.types.insert(1, UnificationType::Literal(LiteralTypes::Float));
-        self.types.insert(5, UnificationType::Known(Type::Integer { size: 1, signed: true }));
-        self.types.insert(5, UnificationType::Known(Type::Integer { size: 8, signed: true }));
-        self.types.insert(2, UnificationType::Known(Type::Integer { size: 32, signed: true }));
-        self.types.insert(4, UnificationType::Known(Type::Integer { size: 64, signed: true }));
-        self.types.insert(7, UnificationType::Known(Type::Integer { size: 8, signed: false }));
-        self.types.insert(8, UnificationType::Known(Type::Integer { size: 16, signed: false }));
-        self.types.insert(9, UnificationType::Known(Type::Integer { size: 32, signed: false }));
-        self.types.insert(3, UnificationType::Known(Type::Float { size: 32 }));
+        self.types.insert("i32".to_string(), UnificationType::Known(Type::Integer { size: 32, signed: true }));
+        self.types.insert("i64".to_string(), UnificationType::Known(Type::Integer { size: 64, signed: true }));
+        self.types.insert("f32".to_string(), UnificationType::Known(Type::Float { size: 32 }));
+        self.types.insert("f64".to_string(), UnificationType::Known(Type::Float { size: 64 }));
+        self.types.insert("u32".to_string(), UnificationType::Known(Type::Integer { size: 32, signed: false }));
+        self.types.insert("u64".to_string(), UnificationType::Known(Type::Integer { size: 64, signed: false }));
+        self.types.insert("void".to_string(), UnificationType::Known(Type::Void));
     }
 
-    pub fn run_checks(&mut self, module: Module<Node>, new_node: &mut Vec<TypedNode>) {
+    pub fn run_checks(&mut self, module: Module<Node>, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
         // collect all function definitions
         if let AST::TopLevel (nodes) = module.get_top().clone() {
             for node in nodes {
@@ -167,10 +129,72 @@ impl Typechecker {
         }
         if let AST::TopLevel (nodes) = module.get_top().clone() {
             for node in nodes {
-                //self.check_node(node, new_node);
+                self.check_node(node, new_node)?;
             }
         }
         println!("{:#?}", self.functions);
+        Ok(())
+    }
+
+    pub fn check_node(&mut self, node: Node, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
+        match node.get_kind() {
+            AST::FuncDef( name, args, ret, body, generics ) => {
+                self.add_scope();
+                if let Some(generics) = generics {
+                    for generic in generics {
+                        self.scope.last_mut().unwrap().insert(generic.get_name().clone(), Symbol::Type(UnificationType::Generic(generic.get_name().clone())));
+                    }
+                }
+                for (name, ty) in args {
+                    let ty = self.get_type(ty.clone())?;
+                    self.scope.last_mut().unwrap().insert(name.clone(), Symbol::Variable(ty));
+                }
+                let ret = self.get_type(ret.clone())?;
+                self.remove_scope();
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub fn get_type(&mut self, ty: AstType) -> Result<UnificationType, ()> {
+        let symbol = self.get_symbol(ty.get_ast().clone())?;
+        match symbol {
+            Symbol::Variable( .. ) => report!(self, Error::UnexpectedItem("type".to_string(), "variable".to_string()), ty.get_ast().clone(), ErrorInfo {
+                info: Some("This does not point towards a type.".to_string()),
+                help: Some("Make sure there is no conflict between variable and type names.".to_string()),
+                note: Some("Variables cant be used as types. Only types can be used as types.".to_string()),
+                ..Default::default()
+            }),
+            Symbol::Function( .. ) => report!(self, Error::UnexpectedItem("type".to_string(), "function".to_string()), ty.get_ast().clone(), ErrorInfo {
+                info: Some("This does not point towards a type.".to_string()),
+                help: Some("Make sure there is no conflict between function and type names.".to_string()),
+                note: Some("Functions cant be used as types. Only types can be used as types.".to_string()),
+                ..Default::default()
+            }),
+            Symbol::Type( ty ) => Ok(ty.clone())
+        }
+    }
+                
+    pub fn get_symbol(&mut self, ty: Node) -> Result<Symbol, ()> {
+        match ty.get_kind() {
+            AST::Ident( name, _ ) => {
+                let s = self.lookup_variable(&name);
+                match s {
+                    Some( sym ) => Ok(sym.clone()),
+                    None => {
+                        report!(self, Error::UnknownVariable(name.clone()), ty, ErrorInfo {
+                            info: Some(format!("Variable '{}' not found!", name).to_string()),
+                            help: Some("Make sure the variable is declared in the current scope.".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+            _ => {
+                report!(self, Error::UnknownVariable("<todo>".to_string()), ty);
+            }
+        }
     }
 
     pub fn get_path_for_name(module: Module<Node>, name: String, class_path: Option<NamespacePath>) -> NamespacePath {
@@ -186,12 +210,16 @@ impl Typechecker {
         &self.reports
     }
 
-    fn lookup_variable(&self, var_name: &str) -> Option<&UnificationType> {
+    fn lookup_variable(&self, var_name: &str) -> Option<Symbol> {
         for scope in self.scope.iter().rev() {
             if let Some(var_type) = scope.get(var_name) {
-                return Some(var_type);
+                return Some(var_type.clone());
             }
         }
+        if let Some(var_type) = self.types.get(var_name) {
+            return Some(Symbol::Type(var_type.clone()));
+        }
+        // TODO: Functions
         None
     }
 
