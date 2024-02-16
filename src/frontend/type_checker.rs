@@ -8,14 +8,14 @@ use crate::frontend::module::{Module, NamespacePath};
 use crate::reports::{CompileError, ErrorInfo, Error, Reports};
 use crate::ast::nodes::AstType;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum UnificationType {
     Known(Type),
     TypeVariable(usize),
     Generic(String)
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Integer {
         size: usize,
@@ -42,17 +42,17 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
-    ast: Node
+    ast: TypedNode
 }
 
 impl FunctionSymbol {
-    pub fn new(ast: Node) -> FunctionSymbol {
+    pub fn new(ast: TypedNode) -> FunctionSymbol {
         FunctionSymbol {
             ast
         }
     }
 
-    pub fn get_ast(&self) -> &Node {
+    pub fn get_ast(&self) -> &TypedNode {
         &self.ast
     }
 }
@@ -116,10 +116,30 @@ impl Typechecker {
     pub fn run_checks(&mut self, module: Module<Node>, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
         // collect all function definitions
         if let AST::TopLevel (nodes) = module.get_top().clone() {
+            // TODO: Do types first here and then functions
             for node in nodes {
                 match node.get_kind() {
-                    AST::FuncDef( name, .. ) => {
-                        self.functions.push((Self::get_path_for_name(module.clone(), name.clone(), None), FunctionSymbol::new(node)));
+                    AST::FuncDef( name, args, ret, body, generics ) => {
+                        //self.functions.push((Self::get_path_for_name(module.clone(), name.clone(), None), FunctionSymbol::new(node)));
+                        self.add_scope();
+                        let mut generic_types = None;
+                        if let Some(generics) = generics {
+                            generic_types = Some(Vec::new());
+                            for generic in generics {
+                                let generic_ty = UnificationType::Generic(generic.get_name().clone());
+                                self.scope.last_mut().unwrap().insert(generic.get_name().clone(), Symbol::Type(generic_ty.clone()));
+                                generic_types.as_mut().unwrap().push(generic_ty.clone());
+                            }
+                        }
+                        let mut typed_args = HashMap::new();
+                        for (name, ty) in args {
+                            let ty = self.get_type(ty.clone())?;
+                            typed_args.insert(name.clone(), ty.clone());
+                        }
+                        let ret = self.get_type(ret.clone())?;
+                        let typed_node = TypedNode::new(AST::FuncDef(name.clone(), typed_args.clone(), ret.clone(), None, generic_types.clone()), node.get_attrs().clone().cloned());
+                        self.functions.push((Self::get_path_for_name(module.clone(), name.clone(), None), FunctionSymbol::new(typed_node)));
+                        self.remove_scope();
                     }
                     _ => {}
                 }
@@ -139,18 +159,7 @@ impl Typechecker {
     pub fn check_node(&mut self, node: Node, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
         match node.get_kind() {
             AST::FuncDef( name, args, ret, body, generics ) => {
-                self.add_scope();
-                if let Some(generics) = generics {
-                    for generic in generics {
-                        self.scope.last_mut().unwrap().insert(generic.get_name().clone(), Symbol::Type(UnificationType::Generic(generic.get_name().clone())));
-                    }
-                }
-                for (name, ty) in args {
-                    let ty = self.get_type(ty.clone())?;
-                    self.scope.last_mut().unwrap().insert(name.clone(), Symbol::Variable(ty));
-                }
-                let ret = self.get_type(ret.clone())?;
-                self.remove_scope();
+                todo!();
             }
             _ => {}
         }

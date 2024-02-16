@@ -81,7 +81,7 @@ impl ClassMember {
 }
 
 #[derive(Debug, Clone)]
-pub enum AST<T: std::fmt::Debug + Clone = Node> {
+pub enum AST<T: std::fmt::Debug + Clone = Node, TN: std::fmt::Debug + Clone = AstType> {
     TopLevel(Vec<T>),
     Return(Option<T>),
     Break,
@@ -90,24 +90,24 @@ pub enum AST<T: std::fmt::Debug + Clone = Node> {
     While(T, T, /* is_do_while */ bool),
     For(T, T, T, Vec<T>),
     Block(Vec<T>),
-    FuncDef(/* name */ String, /* args */ HashMap<String, AstType>, /* ret arg */AstType, Option<T>, Option<Vec<GenericDecl>>),
-    VarDef(String, Option<AstType>, Option<T>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, TN>, /* ret arg */TN, Option<T>, Option<Vec<GenericDecl>>),
+    VarDef(String, Option<TN>, Option<T>),
     ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl>),
     NamespaceDef(Option<T>, Vec<T>),
     Import(T),
     InterfaceDef(Option<T>, Vec<T>, Vec<GenericDecl>),
     EnumDef(Option<T>, Vec<T>),
     Empty,
-    ClassInit(AstType, Vec<T>),
+    ClassInit(TN, Vec<T>),
     ClassAccess(T, String),
     NamespaceAccess(T, String),
-    Ident(String, Option<Vec<AstType>>),
+    Ident(String, Option<Vec<TN>>),
     Int(i64),
     Float(f64),
     String(String),
     Bool(bool),
     Call(T, Vec<T>),
-    Cast(T, AstType),
+    Cast(T, TN),
     BinaryOp(BinaryOp, T, T, /* is_unary */ bool),
     Assign(T, T),
 }
