@@ -40,14 +40,14 @@ impl AstType {
 }
 
 #[derive(Debug, Clone)]
-pub struct GenericDecl {
+pub struct GenericDecl<T: std::fmt::Debug + Clone = AstType> {
     name: String,
-    default: Option<AstType>,
-    impls: Vec<AstType>,
+    default: Option<T>,
+    impls: Vec<T>,
 }
 
-impl GenericDecl {
-    pub fn new(name: String, impls: Vec<AstType>, default: Option<AstType>) -> Self {
+impl<T: std::fmt::Debug + Clone> GenericDecl<T> {
+    pub fn new(name: String, impls: Vec<T>, default: Option<T>) -> Self {
         GenericDecl { name, impls, default }
     }
 
@@ -55,8 +55,12 @@ impl GenericDecl {
         &self.name
     }
 
-    pub fn get_impls(&self) -> &Vec<AstType> {
+    pub fn get_impls(&self) -> &Vec<T> {
         &self.impls
+    }
+
+    pub fn get_default(&self) -> Option<&T> {
+        self.default.as_ref()
     }
 }
 
@@ -90,12 +94,12 @@ pub enum AST<T: std::fmt::Debug + Clone = Node, TN: std::fmt::Debug + Clone = As
     While(T, T, /* is_do_while */ bool),
     For(T, T, T, Vec<T>),
     Block(Vec<T>),
-    FuncDef(/* name */ String, /* args */ HashMap<String, TN>, /* ret arg */TN, Option<T>, Option<Vec<GenericDecl>>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, TN>, /* ret arg */TN, Option<T>, Option<Vec<GenericDecl<TN>>>),
     VarDef(String, Option<TN>, Option<T>),
-    ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl>),
+    ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl<TN>>),
     NamespaceDef(Option<T>, Vec<T>),
     Import(T),
-    InterfaceDef(Option<T>, Vec<T>, Vec<GenericDecl>),
+    InterfaceDef(Option<T>, Vec<T>, Vec<GenericDecl<TN>>),
     EnumDef(Option<T>, Vec<T>),
     Empty,
     ClassInit(TN, Vec<T>),

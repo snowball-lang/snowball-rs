@@ -7,6 +7,8 @@ use crate::ast::nodes::Node;
 use crate::frontend::module::{Module, NamespacePath};
 use crate::reports::{CompileError, ErrorInfo, Error, Reports};
 use crate::ast::nodes::AstType;
+use crate::ast::nodes::GenericDecl;
+use crate::ast::nodes::ClassMember;
 
 #[derive(Clone, Debug)]
 pub enum UnificationType {
@@ -57,11 +59,42 @@ impl FunctionSymbol {
     }
 }
 
+pub struct Object {
+    id: usize,
+    members: Vec<ClassMember>,
+    generics: Vec<GenericDecl>
+}
+
+impl Object {
+    pub fn new(id: usize, members: Vec<ClassMember>, generics: Vec<GenericDecl>) -> Object {
+        Object {
+            id,
+            members,
+            generics
+        }
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    pub fn get_members(&self) -> &Vec<ClassMember> {
+        &self.members
+    }
+
+    pub fn get_generics(&self) -> &Vec<GenericDecl> {
+        &self.generics
+    }
+}
+
 pub struct Typechecker {
     types: HashMap<String, UnificationType>, // TODO: Figure out changing it to a vec
+    constraints: Vec<UnificationType>,
     functions: Vec<(NamespacePath, FunctionSymbol)>,
     scope: Vec<HashMap<String, Symbol>>,
-    reports: Reports
+    infer_ctx: Option<UnificationType>,
+    reports: Reports,
+    objects: Vec<Object>
 }
 
 macro_rules! report {
@@ -90,7 +123,10 @@ impl Typechecker {
             types: HashMap::new(),
             scope: vec![HashMap::new()],
             reports: Reports::new(),
-            functions: Vec::new()
+            constraints: Vec::new(),
+            infer_ctx: None,
+            functions: Vec::new(),
+            objects: Vec::new()
         }
     }
 
@@ -127,8 +163,16 @@ impl Typechecker {
                             generic_types = Some(Vec::new());
                             for generic in generics {
                                 let generic_ty = UnificationType::Generic(generic.get_name().clone());
+                                let mut impls_ty = Vec::new();
+                                for impl_ty in generic.get_impls() {
+                                    impls_ty.push(self.get_type(impl_ty.clone())?);
+                                }
+                                let mut default_ty = None;
+                                if let Some(default) = generic.get_default() {
+                                    default_ty = Some(self.get_type(default.clone())?);
+                                }
+                                generic_types.as_mut().unwrap().push(GenericDecl::new(generic.get_name().clone().clone(), impls_ty, default_ty.clone()));
                                 self.scope.last_mut().unwrap().insert(generic.get_name().clone(), Symbol::Type(generic_ty.clone()));
-                                generic_types.as_mut().unwrap().push(generic_ty.clone());
                             }
                         }
                         let mut typed_args = HashMap::new();
@@ -157,6 +201,7 @@ impl Typechecker {
     }
 
     pub fn check_node(&mut self, node: Node, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
+        println!("{:#?}", self.functions);
         match node.get_kind() {
             AST::FuncDef( name, args, ret, body, generics ) => {
                 todo!();
@@ -190,7 +235,7 @@ impl Typechecker {
             AST::Ident( name, _ ) => {
                 let s = self.lookup_variable(&name);
                 match s {
-                    Some( sym ) => Ok(sym.clone()),
+                    Some( sym ) => self.handle_symbol(sym, ty.clone()),
                     None => {
                         report!(self, Error::UnknownVariable(name.clone()), ty, ErrorInfo {
                             info: Some(format!("Variable '{}' not found!", name).to_string()),
@@ -203,6 +248,74 @@ impl Typechecker {
             _ => {
                 report!(self, Error::UnknownVariable("<todo>".to_string()), ty);
             }
+        }
+    }
+
+    fn get_generics_from_node(&mut self, node: Node) -> Option<Vec<AstType>> {
+        match node.get_kind() {
+            AST::Ident( .., generics ) => generics.clone(),
+            AST::NamespaceAccess( base, .. ) => self.get_generics_from_node(base.clone()),
+            _ => None
+        }
+    }
+
+    pub fn handle_symbol(&mut self, sym: Symbol, node: Node) -> Result<Symbol, ()> {
+        let generics = self.get_generics_from_node(node.clone());
+        match sym {
+            Symbol::Type( ref ty ) => {
+                // we auto-deduce the type here
+                match ty {
+                    UnificationType::Known( ty ) => {
+                        println!("{:#?}", generics);
+                        match ty {
+                            Type::Object { id } => {
+                                if let Some(generics) = generics {
+                                    let object = &self.objects[*id];
+                                    if generics.len() > object.get_generics().len() {
+                                        report!(self, Error::TooManyGenerics(object.get_generics().len(), generics.len()), node, ErrorInfo {
+                                            info: Some("Too many generics for this type.".to_string()),
+                                            help: Some("Make sure the type is not generic.".to_string()),
+                                            messages: Some((format!("This generic is not used in the type definition."), generics[object.get_generics().len()-1].get_ast().get_location().unwrap().column)),
+                                            ..Default::default()
+                                        });
+                                    }
+                                }
+                                Ok(sym)
+                            },
+                            _ => {
+                                if let Some(generics) = generics {
+                                    report!(self, Error::TooManyGenerics(0, generics.len()), node, ErrorInfo {
+                                        info: Some("Too many generics for this type.".to_string()),
+                                        help: Some("Make sure the type is not generic. If it is, make sure the generics are used correctly.".to_string()),
+                                        note: Some("Primitive types cannot be generic thus cannot have generics.".to_string()),
+                                        messages: Some((format!("This type is not generic."), generics[0].get_ast().get_location().unwrap().column)),
+                                        ..Default::default()
+                                    });
+                                }
+                                Ok(sym)
+                            }
+                        }
+                    },
+                    UnificationType::Generic( .. ) => {
+                        if generics.is_some() {
+                            todo!("Generic generics");
+                        }
+                        Ok(sym)
+                    }
+                    _ => {
+                        if let Some(generics) = generics {
+                            report!(self, Error::TooManyGenerics(0, generics.len()), node, ErrorInfo {
+                                info: Some("Too many generics for this type.".to_string()),
+                                help: Some("Make sure the type is not generic.".to_string()),
+                                messages: Some((format!("This type is not generic."), generics[0].get_ast().get_location().unwrap().column)),
+                                ..Default::default()
+                            });
+                        }
+                        Ok(sym)
+                    }
+                }
+            }
+            _ => Ok(sym)
         }
     }
 

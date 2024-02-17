@@ -2,7 +2,7 @@
 use crate::ast::nodes;
 use crate::ast::nodes::AST;
 use crate::ast::attrs::AttrHandler;
-use crate::frontend::type_checker::UnificationType
+use crate::frontend::type_checker::UnificationType;
 
 #[derive(Debug, Clone)]
 pub struct TypedNode {

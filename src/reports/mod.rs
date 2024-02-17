@@ -11,6 +11,7 @@ pub enum Error {
     RepeatedParameter(String),
     UnknownVariable(String),
     UnexpectedItem(String, String),
+    TooManyGenerics(usize, usize),
     UnexpectedEOF,
     ExcessiveSemicolon,
 }
@@ -26,6 +27,9 @@ impl ToString for Error {
             Error::UnknownVariable(var) => format!("Variable with name '{}' not found!", var),
             Error::InvalidExternalSpecifier(data) => format!("invalid external specifier: '{}'", data),
             Error::RepeatedParameter(param) => format!("repeated parameter: '{}'", param),
+            Error::TooManyGenerics(expected, found) => {
+                format!("expected '{}' generics but found '{}'", expected, found)
+            }
             Error::UnexpectedItem(expected, found) => {
                 format!("expected '{}' here but found '{}'", expected, found)
             }
@@ -48,6 +52,7 @@ pub struct ErrorInfo {
     pub note: Option<String>,
     pub info: Option<String>,
     pub see: Option<String>,
+    pub messages: Option<(String, usize)>,
 }
 
 pub struct CompileError {
@@ -69,6 +74,7 @@ impl CompileError {
                 note: None,
                 info: None,
                 see: None,
+                messages: None,
             },
         }
     }
@@ -86,6 +92,7 @@ impl CompileError {
                 note: None,
                 info: None,
                 see: None,
+                messages: None,
             },
         }
     }
@@ -171,8 +178,18 @@ impl CompileError {
                             result.push_str(reset!());
                             result.push_str(bold!());
                             result.push_str(red!());
-                            for _ in 0..self.location.width {
-                                result.push_str("^");
+                            for w in 0..self.location.width {
+                                if self.info.messages.is_some() {
+                                    if self.info.messages.as_ref().unwrap().1 == i+w {
+                                        result.push_str(blue!());
+                                        result.push_str("|");
+                                        result.push_str(red!());
+                                    } else {
+                                        result.push_str("^");
+                                    }
+                                } else {
+                                    result.push_str("^");
+                                }
                             }
                             if let Some(info) = &self.info.info {
                                 result.push_str(format!(" {}", info).as_str());
@@ -184,6 +201,16 @@ impl CompileError {
                         }
                     }
                     result.push_str("\n");
+                    if let Some((msg, col)) = &self.info.messages {
+                        println!("{}", col);
+                        let mut line = String::from(" ".repeat(self.location.column));
+                        line.push_str(blue!());
+                        line.push_str(bold!());
+                        line.push_str("|-- ");
+                        line.push_str(msg);
+                        result.push_str(format!("{}{}   ...{}|\n", bold!(), blue!(), " ".repeat(self.location.column)).as_str());
+                        result.push_str(format!("{}{}    | {}{}{}\n", black!(), bold!(), reset!(), line, reset!()).as_str());
+                    }
                 } else {
                     result.push_str(&format!("{}{}{:3} | {}{}{}\n", bold!(), black!(), line, reset!(), black!(), l));
                 }
@@ -216,7 +243,7 @@ impl CompileError {
             if i == 0 {
                 result.push_str(line);
             } else {
-                result.push_str(format!("\n{}{}    | {}{}", bold!(), black!(), reset!(), line).as_str());
+                result.push_str(format!("\n{}{}    |  {}{}", bold!(), black!(), reset!(), line).as_str());
             }
         }
         Self::print_highlight(result)

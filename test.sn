@@ -1,5 +1,5 @@
 
-public func main(b: i32,a: i32) {
+public func main<T>(b: T,a: i32) {
     while a {
         let xd = 25;
     }
