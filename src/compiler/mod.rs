@@ -21,12 +21,12 @@ impl Compiler {
             return;
         }
         let mut parser = crate::frontend::parser::Parser::new(NamespacePath::from_path(self.path.clone()), self.path.clone(), &lexer);
-        let result = parser.parse();
+        let result = &parser.parse();
         if parser.get_reports().handle_errors() {
             return;
         }
         let mut typechecker = crate::frontend::type_checker::Typechecker::new();
-        let typed_module = typechecker.typecheck(result.unwrap());
+        let typed_module = typechecker.typecheck(&mut (result.clone().unwrap()));
         if typechecker.get_reports().handle_errors() {
             return;
         }

@@ -94,7 +94,7 @@ pub enum AST<T: std::fmt::Debug + Clone = Node, TN: std::fmt::Debug + Clone = As
     While(T, T, /* is_do_while */ bool),
     For(T, T, T, Vec<T>),
     Block(Vec<T>),
-    FuncDef(/* name */ String, /* args */ HashMap<String, TN>, /* ret arg */TN, Option<T>, Option<Vec<GenericDecl<TN>>>),
+    FuncDef(/* name */ String, /* args */ HashMap<String, TN>, /* ret arg */TN, Option<T>, Option<Vec<GenericDecl<TN>>>, /*__id*/ Option<usize>),
     VarDef(String, Option<TN>, Option<T>),
     ClassDef(Option<T>, Vec<ClassMember>, Vec<GenericDecl<TN>>),
     NamespaceDef(Option<T>, Vec<T>),
@@ -130,6 +130,10 @@ impl Node {
 
     pub fn get_kind(&self) -> &AST {
         &self.kind
+    }
+
+    pub fn get_kind_mut(&mut self) -> &mut AST {
+        &mut self.kind
     }
 
     pub fn with_attrs(&mut self, attrs: AttrHandler) -> &Self {

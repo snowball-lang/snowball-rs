@@ -1,5 +1,10 @@
 
-public func main<T>(b: T,a: i32) {
+public func main(a: i32) {
+    while a {
+        let xd = 25;
+    }
+}
+public func main(a: i32) {
     while a {
         let xd = 25;
     }

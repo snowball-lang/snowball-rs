@@ -73,6 +73,10 @@ impl<T: Clone + std::fmt::Debug> Module<T> {
         &(self.top.as_ref().unwrap())
     }
 
+    pub fn get_top_mut(&mut self) -> &mut AST<T> {
+        self.top.as_mut().unwrap()
+    }
+
     pub fn get_path(&self) -> &NamespacePath {
         &self.path
     }

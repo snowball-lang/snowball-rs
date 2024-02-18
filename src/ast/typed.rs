@@ -1,5 +1,4 @@
 
-use crate::ast::nodes;
 use crate::ast::nodes::AST;
 use crate::ast::attrs::AttrHandler;
 use crate::frontend::type_checker::UnificationType;
@@ -17,6 +16,10 @@ impl TypedNode {
 
     pub fn get_kind(&self) -> &Box<AST<TypedNode, UnificationType>> {
         &self.kind
+    }
+
+    pub fn get_kind_mut(&mut self) -> &mut Box<AST<TypedNode, UnificationType>> {
+        &mut self.kind
     }
 
     pub fn get_attrs(&self) -> &Option<AttrHandler> {

@@ -9,6 +9,7 @@ use crate::reports::{CompileError, ErrorInfo, Error, Reports};
 use crate::ast::nodes::AstType;
 use crate::ast::nodes::GenericDecl;
 use crate::ast::nodes::ClassMember;
+use std::ops::Deref;
 
 #[derive(Clone, Debug)]
 pub enum UnificationType {
@@ -130,11 +131,11 @@ impl Typechecker {
         }
     }
 
-    pub fn typecheck(&mut self, module: Module<Node>) -> Module<TypedNode> {
+    pub fn typecheck(&mut self, mut module: &mut Module<Node>) -> Module<TypedNode> {
         let mut new_module = Module::<TypedNode>::new(module.get_path().clone(), module.get_file_name().clone());
         let mut new_top = Vec::new();
         self.initialize_builtin_types();
-        self.run_checks(module.clone(), &mut new_top);
+        self.run_checks(module, &mut new_top);
         new_module.set_top(AST::TopLevel(new_top));
         new_module
     }
@@ -149,14 +150,15 @@ impl Typechecker {
         self.types.insert("void".to_string(), UnificationType::Known(Type::Void));
     }
 
-    pub fn run_checks(&mut self, module: Module<Node>, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
+    pub fn run_checks(&mut self, mut module: &mut Module<Node>, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
+        let x = module.clone();
         // collect all function definitions
-        if let AST::TopLevel (nodes) = module.get_top().clone() {
+        if let AST::TopLevel (nodes) = module.get_top_mut() {
             // TODO: Do types first here and then functions
-            for node in nodes {
-                match node.get_kind() {
-                    AST::FuncDef( name, args, ret, body, generics ) => {
-                        //self.functions.push((Self::get_path_for_name(module.clone(), name.clone(), None), FunctionSymbol::new(node)));
+            for mut node in nodes {
+                match node.clone().get_kind() {
+                    AST::FuncDef( name, args, ret, .., generics, id ) => {
+                        assert!(id.is_none());
                         self.add_scope();
                         let mut generic_types = None;
                         if let Some(generics) = generics {
@@ -181,8 +183,11 @@ impl Typechecker {
                             typed_args.insert(name.clone(), ty.clone());
                         }
                         let ret = self.get_type(ret.clone())?;
-                        let typed_node = TypedNode::new(AST::FuncDef(name.clone(), typed_args.clone(), ret.clone(), None, generic_types.clone()), node.get_attrs().clone().cloned());
-                        self.functions.push((Self::get_path_for_name(module.clone(), name.clone(), None), FunctionSymbol::new(typed_node)));
+                        if let AST::FuncDef( .., id ) = node.get_kind_mut() {
+                            *id = Some(self.functions.len());
+                        }
+                        let typed_node = TypedNode::new(AST::FuncDef(name.clone(), typed_args, ret, None, generic_types, Some(self.functions.len())), node.get_attrs().clone().cloned());
+                        self.functions.push((Self::get_path_for_name(&x, name.clone(), None), FunctionSymbol::new(typed_node)));
                         self.remove_scope();
                     }
                     _ => {}
@@ -196,19 +201,39 @@ impl Typechecker {
                 self.check_node(node, new_node)?;
             }
         }
-        println!("{:#?}", self.functions);
         Ok(())
     }
 
     pub fn check_node(&mut self, node: Node, new_node: &mut Vec<TypedNode>) -> Result<(), ()> {
-        println!("{:#?}", self.functions);
         match node.get_kind() {
-            AST::FuncDef( name, args, ret, body, generics ) => {
-                todo!();
+            AST::FuncDef( name, args, ret, body, generics, id ) => {
+                assert!(id.is_some());
+                if self.scope.last().unwrap().contains_key(name) {
+                    report!(self, Error::VariableAlreadyDeclared(name.clone()), node, ErrorInfo {
+                        info: Some(format!("Variable '{}' already declared in this scope.", name).to_string()),
+                        help: Some("Make sure the variable is not declared twice in the same scope.".to_string()),
+                        ..Default::default()
+                    });
+                }
+                let mut typed_func = self.functions[id.unwrap()];
+                if let AST::FuncDef( _, args, ret, _, generics, .. ) = **typed_func.1.ast.get_kind_mut() {
+                    self.insert_symbol(name.clone(), Symbol::Function(FunctionSymbol::new(typed_func.1.ast.clone())));
+                    self.add_scope();
+                    let mut typed_args = HashMap::new();
+                    for (name, ty) in args {
+                        typed_args.insert(name.clone(), ty);
+                    }
+                } else {
+                    panic!("Expected FuncDef");
+                }
             }
             _ => {}
         }
         Ok(())
+    }
+
+    pub fn insert_symbol(&mut self, name: String, symbol: Symbol) {
+        self.scope.last_mut().unwrap().insert(name, symbol);
     }
 
     pub fn get_type(&mut self, ty: AstType) -> Result<UnificationType, ()> {
@@ -266,7 +291,6 @@ impl Typechecker {
                 // we auto-deduce the type here
                 match ty {
                     UnificationType::Known( ty ) => {
-                        println!("{:#?}", generics);
                         match ty {
                             Type::Object { id } => {
                                 if let Some(generics) = generics {
@@ -319,7 +343,7 @@ impl Typechecker {
         }
     }
 
-    pub fn get_path_for_name(module: Module<Node>, name: String, class_path: Option<NamespacePath>) -> NamespacePath {
+    pub fn get_path_for_name(module: &Module<Node>, name: String, class_path: Option<NamespacePath>) -> NamespacePath {
         let mut path = module.get_path().clone();
         if let Some(class_path) = class_path {
             path.push_path(class_path);

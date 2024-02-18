@@ -250,7 +250,7 @@ impl Parser {
             _ => self.parse_type()?,
         };
         let body = Some(self.parse_block()?);
-        Ok(Node::new(AST::FuncDef(name, params, ret_ty, body, generics)).with_attrs(attrs).clone().with_location(pos))
+        Ok(Node::new(AST::FuncDef(name, params, ret_ty, body, generics, None)).with_attrs(attrs).clone().with_location(pos))
     }
 
     pub fn parse_block(&mut self) -> Result<Node, ()> {

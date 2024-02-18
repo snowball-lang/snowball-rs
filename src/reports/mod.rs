@@ -12,6 +12,7 @@ pub enum Error {
     UnknownVariable(String),
     UnexpectedItem(String, String),
     TooManyGenerics(usize, usize),
+    VariableAlreadyDeclared(String),
     UnexpectedEOF,
     ExcessiveSemicolon,
 }
@@ -27,6 +28,7 @@ impl ToString for Error {
             Error::UnknownVariable(var) => format!("Variable with name '{}' not found!", var),
             Error::InvalidExternalSpecifier(data) => format!("invalid external specifier: '{}'", data),
             Error::RepeatedParameter(param) => format!("repeated parameter: '{}'", param),
+            Error::VariableAlreadyDeclared(var) => format!("variable '{}' already declared!", var),
             Error::TooManyGenerics(expected, found) => {
                 format!("expected '{}' generics but found '{}'", expected, found)
             }
@@ -202,7 +204,6 @@ impl CompileError {
                     }
                     result.push_str("\n");
                     if let Some((msg, col)) = &self.info.messages {
-                        println!("{}", col);
                         let mut line = String::from(" ".repeat(self.location.column));
                         line.push_str(blue!());
                         line.push_str(bold!());
